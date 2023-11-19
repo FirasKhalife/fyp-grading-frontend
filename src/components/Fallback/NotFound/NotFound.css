@@ -1,0 +1,35 @@
+.not-found-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f8f8f8;
+}
+
+.not-found-content {
+  text-align: center;
+}
+
+h1 {
+  font-size: 5em;
+  color: #e74c3c;
+}
+
+h2 {
+  font-size: 2em;
+  margin-top: 0;
+}
+
+p {
+  font-size: 1.2em;
+  color: #555;
+}
+
+a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: 10px;
+  display: inline-block;
+  
+}

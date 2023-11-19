@@ -1,0 +1,38 @@
+.unauthorized-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f8f8f8;
+}
+
+.unauthorized-content {
+  text-align: center;
+}
+
+.unauthorized-content h1 {
+  font-size: 5em;
+  color: #e74c3c;
+}
+
+.unauthorized-content h2 {
+  font-size: 2em;
+  margin-top: 0;
+}
+
+.unauthorized-content p {
+  font-size: 1.2em;
+  color: #555;
+}
+
+.unauthorized-content a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: 10px;
+  display: inline-block;
+}
+
+.unauthorized-content a:hover {
+  color: #217dbb; /* Darker blue on hover */
+}
