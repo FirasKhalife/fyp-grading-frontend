@@ -3,32 +3,34 @@ import AuthService from "../../services/AuthService";
 import ReviewerService from "../../services/ReviewerService";
 import Assessment from "../../enums/Assessment";
 
-function allRubricsLoader() {
+async function allRubricsLoader() {
   
   const user = AuthService.getCurrentUser();
   if (!user) {
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  const rubricsPromise : Promise<IRubric[]> = ReviewerService.getAllRubrics();
+  const rubricsResponse : Response = await ReviewerService.getAllRubrics();
+  const rubrics : IRubric[] = await rubricsResponse.json();
 
-  console.log('in allRubricsLoader:' + rubricsPromise);
+  console.log('in allRubricsLoader:' + rubrics);
 
-  return {user: user, rubricsPromise: rubricsPromise, assessment: Assessment.ALL};
+  return {user: user, rubrics: rubrics, assessment: Assessment.ALL};
 }
 
-function assessmentRubricsLoader(assessment: string) {
+async function assessmentRubricsLoader(assessment: string) {
   
   const user = AuthService.getCurrentUser();
   if (!user) {
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  const rubricsPromise : Promise<IRubric[]> = ReviewerService.getAssessmentRubrics(assessment);
+  const rubricsResponse : Response = await ReviewerService.getAssessmentRubrics(assessment);
+  const rubrics : IRubric[] = await rubricsResponse.json();
 
-  console.log('in assessmentRubricsLoader:' + rubricsPromise);
+  console.log('in assessmentRubricsLoader:' + rubrics);
 
-  return {user: user, rubricsPromise: rubricsPromise, assessment: assessment};
+  return {user: user, rubrics: rubrics, assessment: assessment};
 }
 
 export { allRubricsLoader, assessmentRubricsLoader };

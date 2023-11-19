@@ -1,6 +1,6 @@
 import IRubric from "../interface/IRubric.view";
 import Assessment from "../enums/Assessment";
-import { ADMIN_API_URL } from "../utils/constants/URL";
+import { ADMIN_API_URL, NOTIFICATION_API_URL } from "../utils/constants/URL";
 import AuthService from "./AuthService";
 
 class AdminService {
@@ -70,6 +70,13 @@ class AdminService {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
     return fetch(ADMIN_API_URL + `/reviewers/`, requestOptions);
+  }
+
+  getNotifications() : Promise<Response> {
+    const requestOptions = {
+      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
+    };
+    return fetch(NOTIFICATION_API_URL + `/notifications/`, requestOptions);
   }
 
 }

@@ -1,36 +1,31 @@
-import { Box, Button, Dialog, DialogActions, DialogTitle, Skeleton } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogTitle } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import ITeam from "../interface/ITeam.view";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { getAssessments } from "../enums/Assessment";
 import IReviewer from "../interface/IReviewer.view";
 import ReviewerService from "../services/ReviewerService";
 import IGrade from "../interface/IGrade.view";
+import INotification from "../interface/INotification.view";
+
+const adminLinks = [
+  "Reviewers",
+  "All Teams",
+];
 
 export default function Home(
-  {user, isAdmin, teamsPromise} 
-  : {user: IReviewer, isAdmin: boolean, teamsPromise: Promise<ITeam[]>}
+  {user, isAdmin, teams, notifications} 
+  : {user: IReviewer, isAdmin: boolean, teams: ITeam[], notifications: INotification[]}
 ) {
 
-  const adminLinks = [
-    "Reviewers",
-    "All Teams",
-  ];
-
-  const [teams, setTeams] = useState<ITeam[]>([]);
   const [grades, setGrades] = useState<IGrade[]>([]);
   const [dialog, setDialog] = useState<{status: boolean, teamId: number}>({status: false, teamId: 0});
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.log("teamsPromise", teamsPromise)
-    teamsPromise.then(teams => setTeams(teams));
-  
-  }, [teamsPromise]);
-
   const fetchGrades = (teamId: number) => {
     ReviewerService.getReviewerTeamGrades(user.id, teamId)
+      .then(res => res.json())
       .then(data => {
         setGrades(data);
         console.log(data)
@@ -137,46 +132,36 @@ export default function Home(
           }}
         >
           <h2>Evaluate Team</h2>
-          {teams.length === 0 ? (
-            <Skeleton 
-              variant="rectangular" 
-              width={'100%'} height={'9rem'}
-              sx={{ bgcolor: 'white' }}
-              />
-          ) : (
-            <>
-              <Box
+          <Box
+            sx={{
+              width: '100%',
+              display: 'flex',
+              flexWrap: 'wrap',
+              height: '9rem',
+              minHeight: 'min-content',
+              alignItems: 'center',
+              justifyContent: 'center',
+              '& > :not(style)': {m: 1},
+            }}
+          >
+            {teams.map((team) => (
+              <Button
+                key={team.id}
+                variant="outlined"
                 sx={{
-                  width: '100%',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  height: '9rem',
-                  minHeight: 'min-content',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  '& > :not(style)': {m: 1},
+                  mt: 1, mb: 1,
+                  width: '10rem',
+                  height: '4rem',
+                  margin: '0 1rem',
+                  backgroundColor: 'rgba(117,185,231, 0.2)',
                 }}
+                onClick={() => handleOpenDialog(team.id)}
               >
-                {teams.map((team) => (
-                  <Button
-                    key={team.id}
-                    variant="outlined"
-                    sx={{
-                      mt: 1, mb: 1,
-                      width: '10rem',
-                      height: '4rem',
-                      margin: '0 1rem',
-                      backgroundColor: 'rgba(117,185,231, 0.2)',
-                    }}
-                    onClick={() => handleOpenDialog(team.id)}
-                  >
-                    <h4>Team {team.id}</h4>
-                  </Button>
-                ))
-                }
-              </Box>
-            </>
-          )}
+                <h4>Team {team.id}</h4>
+              </Button>
+            ))
+            }
+          </Box>
         </div>
 
         <div

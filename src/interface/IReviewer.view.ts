@@ -7,6 +7,6 @@ interface IReviewer {
   lastName: string;
   accessToken: string;
   tokenType: string;
-  role: Role;
+  roles: Role[];
 }
 export default IReviewer;

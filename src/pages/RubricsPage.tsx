@@ -1,4 +1,4 @@
-import { useLoaderData, useNavigate } from "react-router-dom";
+import { useLoaderData, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Rubrics from "../components/Rubrics";
 import IReviewer from "../interface/IReviewer.view";
@@ -8,19 +8,20 @@ import Assessment from "../enums/Assessment";
 
 interface IRubricData {
   user: IReviewer;
-  rubricsPromise: Promise<IRubric[]>;
+  rubrics: IRubric[];
   assessment: Assessment;
 }
 
 export default function RubricsPage() {
   
   const navigate = useNavigate();
-  const {user, rubricsPromise, assessment} = useLoaderData() as IRubricData;
+  const location = useLocation();
+  const {user, rubrics, assessment} = useLoaderData() as IRubricData;
 
   return (
     <>
-      <Navbar user={user} navigate={navigate}/>
-      <Rubrics isAdmin={isAdmin(user)} rubricsPromise={rubricsPromise} assessment={assessment}/>
+      <Navbar user={user} navigate={navigate} location={location}/>
+      <Rubrics isAdmin={isAdmin(user)} rubrics={rubrics} assessment={assessment}/>
     </>
   );
 }

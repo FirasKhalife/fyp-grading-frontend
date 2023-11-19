@@ -1,133 +1,60 @@
 import IEvaluation from "../interface/IEvaluation.view";
-import IGrade from "../interface/IGrade.view";
-import IRubric from "../interface/IRubric.view";
-import ITeam from "../interface/ITeam.view";
 import { ADMIN_API_URL, REVIEW_API_URL } from "../utils/constants/URL";
 import AuthService from "./AuthService";
 
 class ReviewerService {
 
-  async getAllRubrics() : Promise<IRubric[]> {
+  getAllRubrics() : Promise<Response> {
     const requestOptions = {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
-    let rubrics: IRubric[] = [];
-    await fetch(ADMIN_API_URL + `/rubrics`, requestOptions)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data);
-        rubrics = data;
-      })
-      .catch(error => console.log(error));
-    
-    return rubrics;
+    return fetch(ADMIN_API_URL + `/rubrics`, requestOptions);
   }
 
-  async getReviewerTeamGrades(reviewerId: number, teamId: number) : Promise<IGrade[]> {
+  getReviewerTeamGrades(reviewerId: number, teamId: number) : Promise<Response> {
     const requestOptions = {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
-    let grades : IGrade[] = [];
-    await fetch(ADMIN_API_URL + `/grades/${reviewerId}/${teamId}`, requestOptions)
-      .then(response => {
-        if (response.status === 404)
-          throw new Error(response.statusText);
-        return response.json();
-      })
-      .then(data => {
-        console.log(data);
-        grades = data;
-      })
-      .catch((error) => console.log(error));
-    
-    return grades;
+    return fetch(ADMIN_API_URL + `/grades/${reviewerId}/${teamId}`, requestOptions);
   }
 
-  async getAssessmentRubrics(assessment: string) : Promise<IRubric[]> {
+  getAssessmentRubrics(assessment: string) : Promise<Response> {
     const requestOptions = {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
-    let rubrics: IRubric[] = [];
-    await fetch(ADMIN_API_URL + `/rubrics/${assessment}`, requestOptions)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data);
-        rubrics = data;
-      })
-      .catch(error => console.log(error));
-    
-    return rubrics;
+    return fetch(ADMIN_API_URL + `/rubrics/${assessment}`, requestOptions);
   }
 
-  async getReviewerTeams(reviewerId: number) : Promise<ITeam[]> {
+  getReviewerTeams(reviewerId: number) : Promise<Response> {
     const requestOptions = {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
-    let teams: ITeam[] = [];
-    await fetch(ADMIN_API_URL + `/reviewers/${reviewerId}/teams`, requestOptions)
-      .then (response => response.json())
-      .then (data => teams = data)
-      .catch(error => console.error(error));
-
-    return teams;
+    return fetch(ADMIN_API_URL + `/reviewers/${reviewerId}/teams`, requestOptions);
   }
 
-  async getReviewerTeamEvaluation(assessment: string, reviewerId: number, teamId: number) : Promise<IEvaluation | null> {
+  getReviewerTeamEvaluation(assessment: string, reviewerId: number, teamId: number) : Promise<Response> {
     const requestOptions = {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
-    let evaluation = null;
-    await fetch(REVIEW_API_URL + `/evaluations/${assessment}/${reviewerId}/${teamId}`, requestOptions)
-      .then(response => {
-        if (response.status === 404)
-          throw new Error(response.statusText);
-        return response.json();
-      })
-      .then(data => {
-        console.log(data);
-        evaluation = data;
-      })
-      .catch(() => {
-        console.log("No evaluation found. Needs creating a new evaluation.");
-      });
-    
-    return evaluation;
+    return fetch(REVIEW_API_URL + `/evaluations/${assessment}/${reviewerId}/${teamId}`, requestOptions);
   }
 
-  async draftEvaluation(evaluation: IEvaluation): Promise<IEvaluation | null> {
+  draftEvaluation(evaluation: IEvaluation): Promise<Response> {
     const requestOptions = {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
       body: JSON.stringify(evaluation)
     };
-    let draftedEvaluation = null;
-    await fetch(REVIEW_API_URL + `/evaluations/draft`, requestOptions)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data);
-        draftedEvaluation = data;
-      })
-      .catch(error => console.error(error));
-    
-    return draftedEvaluation;
+    return fetch(REVIEW_API_URL + `/evaluations/draft`, requestOptions);
   }
 
-  async submitEvaluation(evaluation: IEvaluation) : Promise<IEvaluation | null> {
+  async submitEvaluation(evaluation: IEvaluation) : Promise<Response> {
     const requestOptions = {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
       body: JSON.stringify(evaluation)
     };
-    let submittedEvaluation = null;
-    await fetch(REVIEW_API_URL + `/evaluations/submit`, requestOptions)
-      .then(response => response.json())
-      .then((data: IEvaluation) => {
-        console.log(data);
-        submittedEvaluation = data
-      })
-      .catch(error => console.error(error));
-    
-    return submittedEvaluation;
+    return fetch(REVIEW_API_URL + `/evaluations/submit`, requestOptions);
   }
 
 }

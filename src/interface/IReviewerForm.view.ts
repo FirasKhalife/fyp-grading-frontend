@@ -5,6 +5,6 @@ interface IReviewerForm {
   lastName: string;
   email: string;
   password: string;
-  role: Role;
+  roles: Role[];
 }
 export default IReviewerForm;

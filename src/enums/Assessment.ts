@@ -13,18 +13,24 @@ enum Assessment {
 }
 
 const getAssessments = () => {
-  const role: Role = AuthService.getCurrentUser()!.role;
+  const roles: Role[] = AuthService.getCurrentUser()!.roles;
   
-  switch (role) {
-    case Role.ADMIN:
-      return [Assessment.ORAL_PROPOSAL, Assessment.PROGRESS, Assessment.ADVISOR, 
-              Assessment.FINAL_REPORT, Assessment.FINAL_PRESENTATION];
-    case Role.JURY_MEMBER:
-      return [Assessment.ORAL_PROPOSAL, Assessment.PROGRESS, Assessment.FINAL_REPORT, 
-              Assessment.FINAL_PRESENTATION];
-    case Role.ADVISOR:
-        return [Assessment.ADVISOR];
+  if (roles.includes(Role.ADMIN) 
+      || (roles.includes(Role.JURY_MEMBER) && roles.includes(Role.ADVISOR))) {
+    return [Assessment.ORAL_PROPOSAL, Assessment.PROGRESS, Assessment.ADVISOR, 
+            Assessment.FINAL_REPORT, Assessment.FINAL_PRESENTATION];
   }
+  
+  if (roles.includes(Role.JURY_MEMBER)) {
+    return [Assessment.ORAL_PROPOSAL, Assessment.PROGRESS, Assessment.FINAL_REPORT, 
+            Assessment.FINAL_PRESENTATION];
+  }
+
+  if (roles.includes(Role.ADVISOR)) {
+    return [Assessment.ADVISOR];
+  }
+
+  return [];
 }
 
 export default Assessment; 

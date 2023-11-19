@@ -1,51 +1,19 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import IEvaluation from "../interface/IEvaluation.view";
 import IGradedRubric from "../interface/IGradedRubric.view";
 import { Select, MenuItem, Button, List, ListItem, ListItemText, SelectChangeEvent, FormGroup, Box, Skeleton, Alert } from "@mui/material";
 import ReviewerService from "../services/ReviewerService";
 import grades from "../utils/constants/grades";
-import IRubric from "../interface/IRubric.view";
-import IReviewer from "../interface/IReviewer.view";
 import CloseIcon from '@mui/icons-material/Close';
 
-const defaultEvaluation : IEvaluation = {
-  id: null,
-  reviewerId: 0,
-  teamId: 0,
-  assessment: '',
-  gradedRubrics: [],
-}
-
 export default function Evaluation(
-  {evaluationPromise, user, teamId, assessment } 
-  : {user: IReviewer, evaluationPromise: Promise<IEvaluation>, teamId: number, assessment: string}
+  {evaluation: initialEval, teamId, assessment } 
+  : {evaluation: IEvaluation, teamId: number, assessment: string}
 ) {
 
-  const [evaluation, setEvaluation] = useState<IEvaluation>(defaultEvaluation);
+  const [evaluation, setEvaluation] = useState<IEvaluation>(initialEval);
   const [isAlertOpen, setIsAlertOpen] = useState<boolean>(false);
-
-  useEffect(() => {
-    evaluationPromise.then((fetchedEval) : void => {
-      console.log(fetchedEval)
-      if (fetchedEval)
-        setEvaluation(fetchedEval);
-      else {
-        ReviewerService.getAssessmentRubrics(assessment)
-          .then((data: IRubric[]) => {
-            const gradedRubrics: IGradedRubric[] = data.map(rubric => (
-                {name: rubric.name, percentage: rubric.percentage, grade: 0}
-              )
-            );
-            setEvaluation({id: null, reviewerId: user.id, assessment:assessment, teamId: teamId, gradedRubrics: gradedRubrics});
-          })
-          .catch(error => console.error(error))
-      }
-    });
-
-    return;
-  
-  }, []);
 
   const navigate = useNavigate();
 
@@ -71,11 +39,10 @@ export default function Evaluation(
 
   const handleDraft = () => {
     ReviewerService.draftEvaluation(evaluation)
-      .then((response: IEvaluation | null) => {
-        if (response) {
-          setIsAlertOpen(true);          
+      .then(res => res.json())
+      .then((response: IEvaluation) => {
+          setIsAlertOpen(true);
           setEvaluation(response)
-        }
       });
   }
 
@@ -87,14 +54,8 @@ export default function Evaluation(
     }
 
     ReviewerService.submitEvaluation(evaluation)
-      .then(() => navigate(`/`))
-      .catch((error) => {
-        alert("Error submitting evaluation");
-        error.log(error);
-        return;
-      });
-
-    navigate(`/`);
+      .then(res => res.json())
+      .then(() => { navigate(`/`) });
   }
 
   return (

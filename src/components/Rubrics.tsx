@@ -14,22 +14,14 @@ import AdminService from "../services/AdminService";
 import Assessment from "../enums/Assessment";
 
 export default function Rubrics(
-  { isAdmin, rubricsPromise, assessment } 
-  : { isAdmin: boolean, rubricsPromise: Promise<IRubric[]>, assessment: Assessment }
+  { isAdmin, rubrics: initialRubrics, assessment } 
+  : { isAdmin: boolean, rubrics: IRubric[], assessment: Assessment }
 ) {
-    const [rubrics, setRubrics] = useState<IRubric[]>([]);
+    const [rubrics, setRubrics] = useState<IRubric[]>(initialRubrics);
     const [rubricsText, setRubricsText] = useState<string>('');
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [validationDialog, setValidationDialog] 
                         = useState<{status: boolean, message: string}>({status: false, message: ''});
-
-    useEffect(() => {
-      rubricsPromise.then(rubrics => {
-        setRubrics(rubrics);
-        return;
-      });
-    
-    }, [rubricsPromise]);
 
     useEffect(() => {
       setRubricsText(displayRubrics(rubrics));
@@ -118,11 +110,15 @@ export default function Rubrics(
         dense
         sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}
       >
-        {rubrics.map((rubric: IRubric) => (
-          <ListItem key={rubric.id}>
-            <ListItemText primary={rubric.name} secondary={`${rubric.percentage}%`} />
-          </ListItem>
-        ))}
+        {rubrics.length === 0 ? (
+          <h3>Oh Uh, no rubrics yet!</h3>
+        ) : (
+          rubrics.map((rubric: IRubric) => (
+            <ListItem key={rubric.id}>
+              <ListItemText primary={rubric.name} secondary={`${rubric.percentage}%`} />
+            </ListItem>
+          ))
+        )}
         
         <Dialog
           fullScreen
