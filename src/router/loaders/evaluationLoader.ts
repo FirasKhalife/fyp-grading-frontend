@@ -2,7 +2,8 @@ import IEvaluation from "../../interface/IEvaluation.view";
 import IGradedRubric from "../../interface/IGradedRubric.view";
 import IRubric from "../../interface/IRubric.view";
 import AuthService from "../../services/AuthService";
-import ReviewerService from "../../services/ReviewerService";
+import EvaluationService from "../../services/EvaluationService";
+import RubricService from "../../services/RubricService";
 
 export default async function evaluationLoader(teamId: number, assessment: string) {
 
@@ -12,7 +13,7 @@ export default async function evaluationLoader(teamId: number, assessment: strin
   }
 
   const evaluationResponse : Response = 
-          await ReviewerService.getReviewerTeamEvaluation(assessment, user.id, teamId);
+          await EvaluationService.getReviewerTeamEvaluation(assessment, user.id, teamId);
   
   if (evaluationResponse.ok) {
     const evaluation = await evaluationResponse.json();
@@ -20,7 +21,7 @@ export default async function evaluationLoader(teamId: number, assessment: strin
             teamId: teamId, assessment: assessment};
   }
 
-  const rubricsResponse : Response = await ReviewerService.getAssessmentRubrics(assessment);
+  const rubricsResponse : Response = await RubricService.getAssessmentRubrics(assessment);
   const rubrics : IRubric[] = await rubricsResponse.json();
 
   const gradedRubrics: IGradedRubric[] = rubrics.map(rubric => (
@@ -28,6 +29,7 @@ export default async function evaluationLoader(teamId: number, assessment: strin
   ));
   const evaluation : IEvaluation = {id: null, reviewerId: user.id, assessment:assessment, 
                                     teamId: teamId, gradedRubrics: gradedRubrics};
+  
 
   return {user: user, evaluation: evaluation, 
           teamId: teamId, assessment: assessment};

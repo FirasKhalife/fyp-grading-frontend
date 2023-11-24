@@ -1,5 +1,4 @@
 import EvaluationPage from "../pages/EvaluationPage";
-import NotFoundPage from "../pages/fallback/NotFoundPage";
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import { createBrowserRouter } from "react-router-dom";
@@ -7,6 +6,8 @@ import RubricsPage from "../pages/RubricsPage";
 import homeLoader from "./loaders/homeLoader";
 import evaluationLoader from "./loaders/evaluationLoader";
 import { allRubricsLoader, assessmentRubricsLoader } from "./loaders/rubricsLoader";
+import Fallback from "../pages/Fallback";
+import NotFound from "../components/Fallback/NotFound/NotFound";
 
 const router = () => (
   
@@ -19,31 +20,30 @@ const router = () => (
       path: "/",
       element: <HomePage/>,
       loader: homeLoader,
-      errorElement: <LoginPage/>
+      errorElement: <Fallback/>
     },
     {
       path:"/evaluations/:teamId/:assessment",
       element: <EvaluationPage/>,
       loader: ({ params }) => evaluationLoader(Number(params.teamId!), params.assessment!),
-      errorElement: <LoginPage/>
+      errorElement: <Fallback/>
     },
     {
       path: "/rubrics/:assessment",
       element: <RubricsPage/>,
       loader: ({ params }) => assessmentRubricsLoader(params.assessment!),
-      errorElement: <LoginPage/>
+      errorElement: <Fallback/>
     },
     {
       path: "/rubrics",
       element: <RubricsPage/>,
       loader: allRubricsLoader,
-      errorElement: <LoginPage/>,
+      errorElement: <Fallback/>,
     },
     {
       path: "*",
-      element: <NotFoundPage />
+      element: <NotFound />
     }
   ])
 );
-
 export default router;

@@ -12,10 +12,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import { AppBar, Button, DialogActions, DialogContent, DialogContentText, DialogTitle, TextareaAutosize } from "@mui/material";
 import AdminService from "../services/AdminService";
 import Assessment from "../enums/Assessment";
+import IReviewer from "../interface/IReviewer.view";
 
 export default function Rubrics(
-  { isAdmin, rubrics: initialRubrics, assessment } 
-  : { isAdmin: boolean, rubrics: IRubric[], assessment: Assessment }
+  { user, rubrics: initialRubrics, assessment } 
+  : { user: IReviewer, rubrics: IRubric[], assessment: Assessment }
 ) {
     const [rubrics, setRubrics] = useState<IRubric[]>(initialRubrics);
     const [rubricsText, setRubricsText] = useState<string>('');
@@ -96,7 +97,7 @@ export default function Rubrics(
         }}
       >
         <h2 style={{margin:0}}>Rubrics: {assessment.toUpperCase()}</h2>
-        {isAdmin &&
+        {user.isAdmin &&
           <EditIcon 
             sx={{
               marginLeft: '8px',

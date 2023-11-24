@@ -9,21 +9,25 @@ import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import MoreIcon from '@mui/icons-material/MoreVert';
-import IReviewer from '../interface/IReviewer.view';
-import { Location, NavigateFunction } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
 import AuthService from '../services/AuthService';
+import { snakeToTitle } from '../utils/snakeToTitle';
+import { useLocation, useNavigate } from 'react-router-dom';
+import IReviewer from '../interface/IReviewer.view';
+import INotification from '../interface/INotification.view';
 
 export default function Navbar(
-    {user, navigate, location} : {user: IReviewer, navigate: NavigateFunction, location: Location}
+    {user, notifications} : {user: IReviewer, notifications: INotification[]}
 ) {
 
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = React.useState<null | HTMLElement>(null);
 
-  const isMenuOpen = Boolean(anchorEl);
-  const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
+  const isMenuOpen = Boolean(menuAnchorEl);
+  const isNotificationsMenuOpen = Boolean(notificationsAnchorEl);
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const navbarLocation = 
   `FYP Grading - 
@@ -31,26 +35,25 @@ export default function Navbar(
      + location.pathname.split('/')[1].substring(1)) || 'Home'}`;
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMobileMenuClose = () => {
-    setMobileMoreAnchorEl(null);
+    setMenuAnchorEl(event.currentTarget);
   };
 
   const handleMenuClose = () => {
-    setAnchorEl(null);
-    handleMobileMenuClose();
+    setMenuAnchorEl(null);
   };
 
-  const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMobileMoreAnchorEl(event.currentTarget);
+  const handleNotificationsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setNotificationsAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationsMenuClose = () => {
+    setNotificationsAnchorEl(null);
   };
 
   const menuId = 'primary-search-account-menu';
   const renderMenu = (
     <Menu
-      anchorEl={anchorEl}
+      anchorEl={menuAnchorEl}
       anchorOrigin={{
         vertical: 'bottom',
         horizontal: 'right',
@@ -76,47 +79,41 @@ export default function Navbar(
     </Menu>
   );
 
-  const mobileMenuId = 'primary-search-account-menu-mobile';
-  const renderMobileMenu = (
+  const notificationMenuId = 'primary-search-account-notification-menu';
+  const renderNotificationsMenu = (
     <Menu
-      anchorEl={mobileMoreAnchorEl}
+      anchorEl={notificationsAnchorEl}
       anchorOrigin={{
-        vertical: 'top',
+        vertical: 'bottom',
         horizontal: 'right',
       }}
-      id={mobileMenuId}
+      id={notificationMenuId}
       keepMounted
       transformOrigin={{
         vertical: 'top',
         horizontal: 'right',
       }}
-      open={isMobileMenuOpen}
-      onClose={handleMobileMenuClose}
+      open={isNotificationsMenuOpen}
+      onClose={handleNotificationsMenuClose}
     >
-      <MenuItem>
-        <IconButton
-          size="large"
-          aria-label="show 17 new notifications"
-          color="inherit"
-        >
-          <Badge badgeContent={17} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
-        <p>Notifications</p>
-      </MenuItem>
-      <MenuItem onClick={handleProfileMenuOpen}>
-        <IconButton
-          size="large"
-          aria-label="account of current user"
-          aria-controls="primary-search-account-menu"
-          aria-haspopup="true"
-          color="inherit"
-        >
-          <AccountCircle />
-        </IconButton>
-        <p>Profile</p>
-      </MenuItem>
+      {notifications.length === 0 ? (
+        <MenuItem disabled sx={{"&.Mui-disabled": { opacity: 1 } }}>
+          If you receive any notification, it will appear here.
+        </MenuItem> 
+      ) : (
+        notifications.map((notif) => (
+          <MenuItem 
+            key={notif.id}
+            onClick={() => navigate('/grades/${notif.team.id}')}
+          >
+            {!notif.assessment ? (
+              `Final grade for team ${notif.teamId} is ready.`
+            ) : (
+              `${snakeToTitle(notif.assessment)} grade for team ${notif.teamId} is ready.`
+            )}
+          </MenuItem>
+        ))
+      )}
     </Menu>
   );
 
@@ -158,16 +155,25 @@ export default function Navbar(
           </Typography>
           
           <Box sx={{ flexGrow: 1 }} />
-          <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-            <IconButton
-              size="large"
-              aria-label="show 17 new notifications"
-              color="inherit"
-            >
-              <Badge badgeContent={17} color="error">
+          <Box sx={{ display: 'flex' }}>
+            {user.isAdmin && (
+              <IconButton
+                size="large"
+                edge="end"
+                aria-controls={notificationMenuId}
+                aria-haspopup="true"
+                onClick={handleNotificationsMenuOpen}
+                color="inherit"
+              >
+                {notifications.length === 0 ? (
                 <NotificationsIcon />
-              </Badge>
-            </IconButton>
+                ) : (
+                  <Badge badgeContent={notifications.filter(notif => !notif.isRead).length} color="error">
+                    <NotificationsIcon />
+                  </Badge>
+                )}
+              </IconButton>
+            )}
             <IconButton
               size="large"
               edge="end"
@@ -180,22 +186,10 @@ export default function Navbar(
               <AccountCircle />
             </IconButton>
           </Box>
-          <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
-            <IconButton
-              size="large"
-              aria-label="show more"
-              aria-controls={mobileMenuId}
-              aria-haspopup="true"
-              onClick={handleMobileMenuOpen}
-              color="inherit"
-            >
-              <MoreIcon />
-            </IconButton>
-          </Box>
         </Toolbar>
       </AppBar>
-      {renderMobileMenu}
       {renderMenu}
+      {renderNotificationsMenu}
     </Box>
   );
 }

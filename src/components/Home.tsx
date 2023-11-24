@@ -2,11 +2,11 @@ import { Box, Button, Dialog, DialogActions, DialogTitle } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import ITeam from "../interface/ITeam.view";
 import { useState } from "react";
-import { getAssessments } from "../enums/Assessment";
+import Assessment, { getReviewerAssessments, getReviewerTeamAssessments } from "../enums/Assessment";
 import IReviewer from "../interface/IReviewer.view";
-import ReviewerService from "../services/ReviewerService";
 import IGrade from "../interface/IGrade.view";
-import INotification from "../interface/INotification.view";
+import AdminService from "../services/AdminService";
+import { snakeToTitle } from "../utils/snakeToTitle";
 
 const adminLinks = [
   "Reviewers",
@@ -14,32 +14,40 @@ const adminLinks = [
 ];
 
 export default function Home(
-  {user, isAdmin, teams, notifications} 
-  : {user: IReviewer, isAdmin: boolean, teams: ITeam[], notifications: INotification[]}
+  {user, teams} 
+  : {user: IReviewer, teams: ITeam[]}
 ) {
 
-  const [grades, setGrades] = useState<IGrade[]>([]);
   const [dialog, setDialog] = useState<{status: boolean, teamId: number}>({status: false, teamId: 0});
+  const [reviewerTeamAssessments, setReviewerTeamAssessments] = useState<Assessment[]>([]);
+  const [grades, setGrades] = useState<IGrade[]>([]);
 
   const navigate = useNavigate();
 
-  const fetchGrades = (teamId: number) => {
-    ReviewerService.getReviewerTeamGrades(user.id, teamId)
-      .then(res => res.json())
-      .then(data => {
-        setGrades(data);
-        console.log(data)
-      });
+  async function handleOpenDialog(teamId: number) {
+    getReviewerTeamAssessments(user.id, teamId)
+      .then(res => {
+        setReviewerTeamAssessments(res)
+        AdminService.getReviewerTeamGrades(user.id, teamId)
+          .then(res => res.json())
+          .then(data => {
+            setGrades(data);
+            setDialog({status: true, teamId: teamId});
+          });
+        })
   }
 
-  const handleOpenDialog = (teamId: number) : void => {
-    setDialog({status: true, teamId: teamId});
-    fetchGrades(teamId);
+  const handleCloseDialog = () : void => {
+    setDialog(prev => ({...prev, status: false}));
+    setTimeout(() => {
+      setReviewerTeamAssessments([]);
+      setGrades([]);
+    }, 100);
   };
 
   return (
     <>
-      {isAdmin && (
+      {user.isAdmin && (
         <>
           <Box
             sx={{
@@ -71,7 +79,7 @@ export default function Home(
           open={dialog.status}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
-          onClose={() => setDialog(prev => ({...prev, status: false}))}
+          onClose={handleCloseDialog}
           sx={{
             overflow: 'hidden',
           }}
@@ -94,7 +102,7 @@ export default function Home(
                 '& > :not(style)': {m: 1},
                 }}
               >
-              {getAssessments().filter(a => a != 'ALL').map((assessment) => (
+              {reviewerTeamAssessments.map((assessment) => (
                 <Button
                   key={assessment}
                   variant="outlined"
@@ -107,7 +115,7 @@ export default function Home(
                   }}
                   disabled={grades.find(grade => grade.assessment == assessment)?.grade ? true : false}
                 >
-                  <h4>{assessment.replace('_', ' ')}</h4>
+                  <h4>{snakeToTitle(assessment)}</h4>
                   <p
                     style={{
                       position:'absolute',
@@ -183,7 +191,7 @@ export default function Home(
               '& > :not(style)': {m: 1},
             }}
           >
-            {getAssessments().filter(a => a != 'ALL').map((assessment) => (
+            {getReviewerAssessments().map((assessment) => (
               <Button
                 key={assessment}
                 variant="outlined"

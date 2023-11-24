@@ -1,8 +1,8 @@
 import { NavigateFunction } from "react-router-dom";
 import IAuth from "../interface/IAuth.view";
-import IJwtResponse from "../interface/IJwtResponse.view";
 import IReviewerForm from "../interface/IReviewerForm.view";
 import { ADMIN_API_URL } from "../utils/constants/URL";
+import IReviewer from "../interface/IReviewer.view";
 
 class AuthService {
 
@@ -19,7 +19,6 @@ class AuthService {
         return resp.json();
       })
       .then(respData => {
-        console.log(respData);
         ret.data = respData;
       })
       .catch(error => console.error(error));
@@ -41,7 +40,7 @@ class AuthService {
     navigate('/login');
   }
 
-  getCurrentUser() {
+  getCurrentUser() : IReviewer | null {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   }
@@ -52,7 +51,7 @@ class AuthService {
       return { Authorization: '' };
     }
     
-    const user: IJwtResponse = JSON.parse(userStr);
+    const user: IReviewer = JSON.parse(userStr);
     return { Authorization: 'Bearer ' + user.accessToken };
   }
 

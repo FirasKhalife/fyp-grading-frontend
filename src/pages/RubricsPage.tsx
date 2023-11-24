@@ -1,10 +1,9 @@
-import { useLoaderData, useLocation, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
+import { useLoaderData } from "react-router-dom";
 import Rubrics from "../components/Rubrics";
 import IReviewer from "../interface/IReviewer.view";
 import IRubric from "../interface/IRubric.view";
-import isAdmin from "../utils/auth/isAdmin";
 import Assessment from "../enums/Assessment";
+import Navbar from "../components/Navbar";
 
 interface IRubricData {
   user: IReviewer;
@@ -14,14 +13,14 @@ interface IRubricData {
 
 export default function RubricsPage() {
   
-  const navigate = useNavigate();
-  const location = useLocation();
   const {user, rubrics, assessment} = useLoaderData() as IRubricData;
+
+  const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
 
   return (
     <>
-      <Navbar user={user} navigate={navigate} location={location}/>
-      <Rubrics isAdmin={isAdmin(user)} rubrics={rubrics} assessment={assessment}/>
+      <Navbar user={user} notifications={notifications}/>
+      <Rubrics user={user} rubrics={rubrics} assessment={assessment}/>
     </>
   );
 }

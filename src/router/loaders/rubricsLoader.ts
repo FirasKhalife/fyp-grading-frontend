@@ -1,7 +1,7 @@
 import IRubric from "../../interface/IRubric.view";
 import AuthService from "../../services/AuthService";
-import ReviewerService from "../../services/ReviewerService";
 import Assessment from "../../enums/Assessment";
+import RubricService from "../../services/RubricService";
 
 async function allRubricsLoader() {
   
@@ -10,7 +10,7 @@ async function allRubricsLoader() {
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  const rubricsResponse : Response = await ReviewerService.getAllRubrics();
+  const rubricsResponse : Response = await RubricService.getAllRubrics();
   const rubrics : IRubric[] = await rubricsResponse.json();
 
   console.log('in allRubricsLoader:' + rubrics);
@@ -25,7 +25,7 @@ async function assessmentRubricsLoader(assessment: string) {
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  const rubricsResponse : Response = await ReviewerService.getAssessmentRubrics(assessment);
+  const rubricsResponse : Response = await RubricService.getAssessmentRubrics(assessment);
   const rubrics : IRubric[] = await rubricsResponse.json();
 
   console.log('in assessmentRubricsLoader:' + rubrics);

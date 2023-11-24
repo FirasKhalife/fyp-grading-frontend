@@ -1,9 +1,9 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import IEvaluation from "../interface/IEvaluation.view";
 import IGradedRubric from "../interface/IGradedRubric.view";
 import { Select, MenuItem, Button, List, ListItem, ListItemText, SelectChangeEvent, FormGroup, Box, Skeleton, Alert } from "@mui/material";
-import ReviewerService from "../services/ReviewerService";
+import EvaluationService from "../services/EvaluationService";
 import grades from "../utils/constants/grades";
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -38,9 +38,10 @@ export default function Evaluation(
   };
 
   const handleDraft = () => {
-    ReviewerService.draftEvaluation(evaluation)
+    EvaluationService.draftEvaluation(evaluation)
       .then(res => res.json())
       .then((response: IEvaluation) => {
+          console.log(response);
           setIsAlertOpen(true);
           setEvaluation(response)
       });
@@ -53,27 +54,32 @@ export default function Evaluation(
       return;
     }
 
-    ReviewerService.submitEvaluation(evaluation)
+    EvaluationService.submitEvaluation(evaluation)
       .then(res => res.json())
       .then(() => { navigate(`/`) });
   }
 
   return (
-    <>
+    <div
+      style={{
+        position: 'relative',
+        top: 30,
+      }}
+    >
       {isAlertOpen &&
         <Alert 
           severity="success"
           sx={{
             position: "fixed",
-            top: 0, left: 0, right: 0,
+            top: 62, left: 0, right: 0,
             height: 'min-content',
             padding: '0 8px',
             borderBottom: '1px solid #4caf50',
+            zIndex: 100,
           }}
         >
           Evaluation drafted!
-        
-          <CloseIcon 
+          <CloseIcon
             sx={{
               position: 'absolute',
               top: '50%',
@@ -81,10 +87,11 @@ export default function Evaluation(
               transform: 'translateY(-50%)',
               cursor: 'pointer',
             }}
-            onClick={() => setIsAlertOpen(false)} />
+            onClick={() => setIsAlertOpen(false)} 
+          />
         </Alert>
       }
-      <h2>{`Grading ${assessment} for Team ${teamId}`} </h2>
+      <h2>{`Grading ${assessment} for Team ${teamId}`}</h2>
         <FormGroup>
           <List
             dense
@@ -151,6 +158,6 @@ export default function Evaluation(
               <Button sx={{width: 100, margin: '0 8px'}} variant="contained" onClick={handleSubmit}>Submit</Button>
             </Box>}
         </FormGroup>
-    </>
+    </div>
   );
 }
