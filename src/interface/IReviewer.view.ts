@@ -1,4 +1,4 @@
-import Role from "../enums/Role";
+import RoleEnum from "../enums/RoleEnum";
 
 interface IReviewer {
   id: number;
@@ -8,6 +8,6 @@ interface IReviewer {
   accessToken: string;
   tokenType: string;
   isAdmin: boolean;
-  roles: Role[];
+  roles: RoleEnum[];
 }
 export default IReviewer;

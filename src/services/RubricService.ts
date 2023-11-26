@@ -1,21 +1,43 @@
+import AssessmentEnum from "../enums/AssessmentEnum";
+import IRubric from "../interface/IRubric.view";
+import AuthUtils from "../utils/AuthUtils";
 import { RUBRIC_API_URL } from "../utils/constants/URL";
-import AuthService from "./AuthService";
 
 class RubricService {
 
-  getAllRubrics() : Promise<Response> {
-    const requestOptions = {
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-    };
-    return fetch(RUBRIC_API_URL + `/rubrics`, requestOptions);
+  static async getAllRubrics() : Promise<Response> {
+    return fetch(RUBRIC_API_URL + `/rubrics`, AuthUtils.requestHeaders);
   }
 
-  getAssessmentRubrics(assessment: string) : Promise<Response> {
+  static async getAssessmentRubrics(assessment: string) : Promise<Response> {
+    return fetch(RUBRIC_API_URL + `/rubrics/${assessment}`, AuthUtils.requestHeaders);
+  }
+
+  static async addRubric(rubric: IRubric) : Promise<Response> {
     const requestOptions = {
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
+      ...AuthUtils.requestHeaders,
+      method: 'POST',
+      body: JSON.stringify(rubric)
+    };
+    return fetch(RUBRIC_API_URL + `/rubrics/`, requestOptions);
+  }
+
+  static async updateRubrics(assessment: AssessmentEnum, rubrics: IRubric[]) : Promise<Response> {
+    const requestOptions = {
+      ...AuthUtils.requestHeaders,
+      method: 'PUT',
+      body: JSON.stringify(rubrics)
     };
     return fetch(RUBRIC_API_URL + `/rubrics/${assessment}`, requestOptions);
   }
 
+  static async deleteRubric(rubricId: number) : Promise<Response> {
+    const requestOptions = {
+      ...AuthUtils.requestHeaders,
+      method: 'DELETE',
+    };
+    return fetch(RUBRIC_API_URL + `rubrics/${rubricId}`, requestOptions);
+  }
+
 }
-export default new RubricService();
+export default RubricService;

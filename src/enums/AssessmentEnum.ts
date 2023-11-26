@@ -1,0 +1,10 @@
+
+enum AssessmentEnum {
+  ORAL_PROPOSAL = 'ORAL_PROPOSAL',
+  PROGRESS = 'PROGRESS',
+  ADVISOR = 'ADVISOR',
+  FINAL_REPORT = 'FINAL_REPORT',
+  FINAL_PRESENTATION = 'FINAL_PRESENTATION',
+}
+
+export default AssessmentEnum;

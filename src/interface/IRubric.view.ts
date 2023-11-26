@@ -1,9 +1,9 @@
-import Assessment from "../enums/Assessment";
+import AssessmentEnum from "../enums/AssessmentEnum";
 
 interface IRubric {
   id: number;
   name: string;
   percentage: number;
-  assessment: Assessment;
+  assessment: AssessmentEnum;
 }
 export default IRubric;

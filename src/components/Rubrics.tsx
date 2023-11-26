@@ -10,80 +10,85 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import { AppBar, Button, DialogActions, DialogContent, DialogContentText, DialogTitle, TextareaAutosize } from "@mui/material";
-import AdminService from "../services/AdminService";
-import Assessment from "../enums/Assessment";
+import RubricService from "../services/RubricService";
 import IReviewer from "../interface/IReviewer.view";
+import StringUtils from "../utils/StringUtils";
+import AssessmentEnum from "../enums/AssessmentEnum";
 
 export default function Rubrics(
   { user, rubrics: initialRubrics, assessment } 
-  : { user: IReviewer, rubrics: IRubric[], assessment: Assessment }
+  : { user: IReviewer, rubrics: IRubric[], assessment: AssessmentEnum }
 ) {
-    const [rubrics, setRubrics] = useState<IRubric[]>(initialRubrics);
-    const [rubricsText, setRubricsText] = useState<string>('');
-    const [isEditing, setIsEditing] = useState<boolean>(false);
-    const [validationDialog, setValidationDialog] 
-                        = useState<{status: boolean, message: string}>({status: false, message: ''});
+  const [rubrics, setRubrics] = useState<IRubric[]>(initialRubrics);
+  const [rubricsText, setRubricsText] = useState<string>('');
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [validationDialog, setValidationDialog] 
+                      = useState<{status: boolean, message: string}>({status: false, message: ''});
 
-    useEffect(() => {
-      setRubricsText(displayRubrics(rubrics));
+  useEffect(() => {
+    setRubricsText(displayRubrics(rubrics));
+  
+  }, [rubrics]);
+
+  const displayRubrics = (rubrics: IRubric[]) => (
+    "[\n" +
+    rubrics.map(rubric => (
+      ` {\n  "name": "${rubric.name}",\n  "percentage": ${rubric.percentage}\n }`
+    )).join(',\n')
+    + "\n]"
+  );
+
+  const handleCloseValidationDialog = (choice: string) => {
+    setValidationDialog({...validationDialog, status: false});
+    if (choice === 'NO')
+        return;
     
-    }, [rubrics]);
-
-    const displayRubrics = (rubrics: IRubric[]) => (
-      "[\n" +
-      rubrics.map(rubric => (
-        ` {\n  "name": "${rubric.name}",\n  "percentage": ${rubric.percentage}\n }`
-      )).join(',\n')
-      + "\n]"
-    );
-
-    const handleCloseValidationDialog = (choice: string) => {
-      setValidationDialog({...validationDialog, status: false});
-      if (choice === 'NO')
-          return;
-      
-      if (validationDialog.message === 'Discard changes?') {
-        setIsEditing(false);
-        setRubricsText(displayRubrics(rubrics));
-        return;
-      }
-
-      if (validationDialog.message === 'Save changes?')
-        handleUpdateRubrics();
-    }
-
-    const handleOpenValidationDialog = (message: string) => {
-      setValidationDialog({status: true, message: message});
-    }
-
-    const handleOpenTextDialog = () => {
-      setIsEditing(true);
-    };
-
-    const handleCloseTextDialog = (message: string) => {
-      handleOpenValidationDialog(message);
-    };
-
-    const handleUpdateRubrics = () => {
-      let newRubrics : IRubric[] = [];
-      try {
-         newRubrics = JSON.parse(rubricsText) as IRubric[];
-      } catch (e) {
-        setValidationDialog({status: false, message: ''});
-        alert('JSON could not be parsed!');
-        return;
-      }
-
-      if (newRubrics.reduce((acc, rubric) => acc + rubric.percentage, 0) !== 100) {
-        setValidationDialog({status: false, message: ''});
-        alert('Percentages does not add up to 100!');
-        return;
-      }
-
+    if (validationDialog.message === 'Discard changes?') {
       setIsEditing(false);
-      const savedRubrics = AdminService.updateRubrics(assessment, newRubrics);
-      setRubrics(savedRubrics);
+      setRubricsText(displayRubrics(rubrics));
+      return;
     }
+
+    if (validationDialog.message === 'Save changes?')
+      handleUpdateRubrics();
+  }
+
+  const handleOpenValidationDialog = (message: string) => {
+    setValidationDialog({status: true, message: message});
+  }
+
+  const handleOpenTextDialog = () => {
+    setIsEditing(true);
+  };
+
+  const handleCloseTextDialog = (message: string) => {
+    handleOpenValidationDialog(message);
+  };
+
+  const handleUpdateRubrics = () => {
+    let newRubrics : IRubric[] = [];
+    try {
+        newRubrics = JSON.parse(rubricsText) as IRubric[];
+    } catch (e) {
+      setValidationDialog({status: false, message: ''});
+      alert('JSON could not be parsed!');
+      return;
+    }
+
+    newRubrics.forEach(rubric => rubric.assessment = assessment);
+    if (newRubrics.reduce((acc, rubric) => acc + rubric.percentage, 0) !== 100) {
+      setValidationDialog({status: false, message: ''});
+      alert('Percentages does not add up to 100!');
+      return;
+    }
+    
+    RubricService.updateRubrics(assessment, newRubrics)
+      .then(res => res.json())
+      .then((savedRubrics: IRubric[]) => {
+        setIsEditing(false);
+        setRubrics(savedRubrics);
+      });
+  }
 
   return (
     <>
@@ -96,7 +101,7 @@ export default function Rubrics(
           position: 'relative',
         }}
       >
-        <h2 style={{margin:0}}>Rubrics: {assessment.toUpperCase()}</h2>
+        <h2 style={{margin:0}}>Rubrics: {StringUtils.snakeToTitle(assessment.toUpperCase())}</h2>
         {user.isAdmin &&
           <EditIcon 
             sx={{

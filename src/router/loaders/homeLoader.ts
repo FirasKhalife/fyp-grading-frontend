@@ -1,33 +1,16 @@
-import INotification from "../../interface/INotification.view";
-import IReceivedNotification from "../../interface/IReceivedNotification.view";
-import ITeam from "../../interface/ITeam.view";
+import IHome from "../../interface/IHome.view";
+import IReviewer from "../../interface/IReviewer.view";
 import AdminService from "../../services/AdminService";
-import AuthService from "../../services/AuthService";
-import NotificationService from "../../services/NotificationService";
-import stringToDate from "../../utils/stringToDate";
+import AuthUtils from "../../utils/AuthUtils";
 
 export default async function homeLoader() {
   
-  const user = AuthService.getCurrentUser();
-  if (!user) {
-    throw new Response("Unauthorized", { status: 401 });
-  }
+  const user: IReviewer = AuthUtils.checkAndGetCurrentUser();
 
-  const teamsResponse : Response = await AdminService.getReviewerTeams(user.id);
-  const teams : ITeam[] = await teamsResponse.json();
-
-  const notificationPromise : Response = 
-        user.isAdmin ? await NotificationService.getNotifications() : new Response("[]");
-
-  const receivedNotifications : IReceivedNotification[] = await notificationPromise.json();
-
-  const notifications : INotification[] = receivedNotifications.map((notif) => (
-      {...notif, gradeFinalizedAt: stringToDate(notif.gradeFinalizedAt)}
-  ));
+  const homeResponse : Response = await AdminService.getReviewerHomeData(user.id);
+  const {reviewerTeamsAssessments, notifications} : IHome = await homeResponse.json();
   
   localStorage.setItem("notifications", JSON.stringify(notifications));
 
-  console.log("HomeLoader: ", user, teams, notifications);
-
-  return {user: user, teams: teams, notifications: notifications};
+  return {user: user, reviewerTeamsAssessments: reviewerTeamsAssessments, notifications: notifications};
 }

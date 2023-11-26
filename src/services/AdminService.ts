@@ -1,98 +1,47 @@
-import IRubric from "../interface/IRubric.view";
-import Assessment from "../enums/Assessment";
+import AuthUtils from "../utils/AuthUtils";
 import { ADMIN_API_URL } from "../utils/constants/URL";
-import AuthService from "./AuthService";
 
 class AdminService {
 
-  async getReviewerTeamRoles(reviewerId: number, teamId: number) : Promise<Response> {
-    const requestOptions = {
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-    };
-
-    return fetch(ADMIN_API_URL + `/reviewers/${reviewerId}/teams/${teamId}/roles`, requestOptions);
+  static async getReviewerHomeData(reviewerId: number) : Promise<Response> {
+    return fetch(
+      ADMIN_API_URL + `/reviewers/${reviewerId}/home`, AuthUtils.requestHeaders
+     );
   }
 
-  deleteRubric(rubricId: number) : IRubric[] {
-    const requestOptions = {
-      method: 'DELETE',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-    };
-    let rubrics: IRubric[] = [];
-    fetch(ADMIN_API_URL + `rubrics/${rubricId}`, requestOptions)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data);
-        rubrics = rubrics.filter((r) => r.id !== rubricId);
-      })
-      .catch(error => console.error(error));
-    
-    return rubrics;
+  static async getTeamEvaluationsByAssessment(teamId: number, assessment: string) : Promise<Response> {
+    return fetch(
+      ADMIN_API_URL + `/admin/teams/${teamId}/evaluations/${assessment}`, AuthUtils.requestHeaders
+    );
   }
 
-  addRubric(rubric: IRubric) : IRubric[] {
-    const requestOptions = {
-      method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-      body: JSON.stringify(rubric)
-    };
-    let rubrics: IRubric[] = [];
-    fetch(ADMIN_API_URL + `/rubrics/`, requestOptions)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data);
-        rubrics = [...rubrics, data];
-      })
-      .catch(error => console.error(error));
-
-    return rubrics;
+  static async getTeamsGrades() : Promise<Response> {
+    return fetch(
+      ADMIN_API_URL + `/admin/teams/grades`, AuthUtils.requestHeaders
+    );
   }
 
-  updateRubrics(assessment: Assessment, rubrics: IRubric[]) : IRubric[] {
-    let updatedRubrics: IRubric[] = [];
-    const requestOptions = {
-      method: 'PUT',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-      body: JSON.stringify(rubrics)
-    };
-    fetch(ADMIN_API_URL + `/rubrics/${assessment}`, requestOptions)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data);
-        updatedRubrics = data;
-      })
-      .catch(error => console.error(error));
-
-    return updatedRubrics;
+  static async getReviewerTeamRoles(reviewerId: number, teamId: number) : Promise<Response> {
+    return fetch(
+      ADMIN_API_URL + `/reviewers/${reviewerId}/teams/${teamId}/roles`, AuthUtils.requestHeaders
+    );
   }
 
-  getTeams() {
-    const requestOptions = {
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-    };
-    return fetch(ADMIN_API_URL + `/teams/`, requestOptions);
+  static async getTeams() {
+    return fetch(ADMIN_API_URL + `/teams/`, AuthUtils.requestHeaders);
   }
 
-  getReviewers() {
-    const requestOptions = {
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-    };
-    return fetch(ADMIN_API_URL + `/reviewers/`, requestOptions);
+  static async getReviewers() {
+    return fetch(ADMIN_API_URL + `/reviewers/`, AuthUtils.requestHeaders);
   }
 
-  getReviewerTeamGrades(reviewerId: number, teamId: number) : Promise<Response> {
-    const requestOptions = {
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-    };
-    return fetch(ADMIN_API_URL + `/grades/${reviewerId}/${teamId}`, requestOptions);
+  static async getReviewerTeamGrades(reviewerId: number, teamId: number) : Promise<Response> {
+    return fetch(ADMIN_API_URL + `/grades/${reviewerId}/${teamId}`, AuthUtils.requestHeaders);
   }
 
-  getReviewerTeams(reviewerId: number) : Promise<Response> {
-    const requestOptions = {
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-    };
-    return fetch(ADMIN_API_URL + `/reviewers/${reviewerId}/teams`, requestOptions);
+  static async getReviewerTeams(reviewerId: number) : Promise<Response> {
+    return fetch(ADMIN_API_URL + `/reviewers/${reviewerId}/teams`, AuthUtils.requestHeaders);
   }
 
 }
-export default new AdminService();
+export default AdminService;

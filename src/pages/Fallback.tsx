@@ -1,15 +1,17 @@
+import { ErrorResponse, useRouteError } from "react-router-dom";
 import UnexpectedError from "../components/Fallback/UnexpectedError/UnexpectedError";
-import AuthService from "../services/AuthService";
 import LoginPage from "./LoginPage";
 
 export default function Fallback() {
 
+  const error = useRouteError() as ErrorResponse;
+
   return (
     <>
-      {AuthService.getCurrentUser() ? (
-        <UnexpectedError />
-      ) : (
+      {error.status === 401 ? (
         <LoginPage />
+      ) : (
+        <UnexpectedError />
       )}
     </>
   );

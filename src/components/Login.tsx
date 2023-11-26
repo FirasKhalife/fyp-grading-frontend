@@ -37,52 +37,43 @@ export default function Login() {
   const location = useLocation();
 
   useEffect(() => {
-    // const user = localStorage.getItem('user');
-    // if (user) {
-    //   navigate('/');
-    // }
-    // else {
       setIsLoggedIn(false);
       if (location.pathname !== '/login')
         navigate('/login');
-    // }
   }, [location, navigate]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitted(true);
     if (!auth.email || !auth.password)
       return;
 
-    AuthService.login(auth)
-    .then(({response, data} : {response: Response, data: unknown}) => {
+    const loginResponse = await AuthService.login(auth);
 
-      if (!response.ok) {
-        setLoginResult(
-          {
-            message: response.status == 401 ? "Invalid email or password" : "Unexpected error, please try again later",
-            status: response.status
-          }
-        );
-        return;
-      }
+    if (!loginResponse.ok) {
+      setLoginResult(
+        {
+          message: loginResponse.status == 401 ? 
+                    "Invalid email or password" : 
+                    "Unexpected error, please try again later",
+          status: loginResponse.status
+        }
+      );
+      return;
+    }
 
-      const user = data as IReviewer;
-      setLoginResult({message: 'Login successful', status: 200});
+    const user = await loginResponse.json() as IReviewer;
+    setLoginResult({message: 'Login successful', status: 200});
 
-      localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('user', JSON.stringify(user));
 
-      if (remember)
-        localStorage.setItem('email', JSON.stringify(user.email));
-      else
-        localStorage.removeItem('email');
-      
-      if (location.state && location.state.previousPage)
-        navigate(location.state.previousPage);
-      else
-        navigate('/');
-    });
-  };
+    if (remember)
+      localStorage.setItem('email', JSON.stringify(user.email));
+    else
+      localStorage.removeItem('email');
+
+    navigate('/');
+  }
 
   return (
     <ThemeProvider theme={defaultTheme}>

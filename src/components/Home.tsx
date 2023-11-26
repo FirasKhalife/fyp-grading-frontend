@@ -1,47 +1,43 @@
 import { Box, Button, Dialog, DialogActions, DialogTitle } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
-import ITeam from "../interface/ITeam.view";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import Assessment, { getReviewerAssessments, getReviewerTeamAssessments } from "../enums/Assessment";
 import IReviewer from "../interface/IReviewer.view";
-import IGrade from "../interface/IGrade.view";
-import AdminService from "../services/AdminService";
-import { snakeToTitle } from "../utils/snakeToTitle";
+import StringUtils from "../utils/StringUtils";
+import IReviewerTeamsAssessments from "../interface/IReviewerTeamsAssessments.view";
 
-const adminLinks = [
-  "Reviewers",
-  "All Teams",
-];
+interface IDialog {
+  status: boolean;
+  teamId: number;
+  teamIndex: number;
+}
+
+const defaultDialog : IDialog = {
+  status: false,
+  teamId: -1,
+  teamIndex: -1,
+};
 
 export default function Home(
-  {user, teams} 
-  : {user: IReviewer, teams: ITeam[]}
+  {user, reviewerTeamsAssessments : { reviewerAssessments, reviewerTeams }} 
+  : {user: IReviewer, reviewerTeamsAssessments : IReviewerTeamsAssessments }
 ) {
 
-  const [dialog, setDialog] = useState<{status: boolean, teamId: number}>({status: false, teamId: 0});
-  const [reviewerTeamAssessments, setReviewerTeamAssessments] = useState<Assessment[]>([]);
-  const [grades, setGrades] = useState<IGrade[]>([]);
+  const [dialog, setDialog] = useState<IDialog>(defaultDialog);
 
   const navigate = useNavigate();
 
-  async function handleOpenDialog(teamId: number) {
-    getReviewerTeamAssessments(user.id, teamId)
-      .then(res => {
-        setReviewerTeamAssessments(res)
-        AdminService.getReviewerTeamGrades(user.id, teamId)
-          .then(res => res.json())
-          .then(data => {
-            setGrades(data);
-            setDialog({status: true, teamId: teamId});
-          });
-        })
+  function handleOpenDialog(teamId: number) {
+    setDialog({
+      status: true, 
+      teamId: teamId, 
+      teamIndex: reviewerTeams.findIndex(revTeam => revTeam.team.id == teamId)
+    });
   }
 
   const handleCloseDialog = () : void => {
     setDialog(prev => ({...prev, status: false}));
     setTimeout(() => {
-      setReviewerTeamAssessments([]);
-      setGrades([]);
+      setDialog(defaultDialog);
     }, 100);
   };
 
@@ -57,20 +53,21 @@ export default function Home(
               alignItems: 'center',
               justifyContent: 'start',
               '& > :not(style)': {m: 1},
-            }}>
-            {adminLinks.map((link) => (
-              <Button
-                variant="outlined"
-                key={link}
-                sx={{
-                  mt: 1, mb: 1,
-                  width: '10rem',
-                  height: '3rem',
-                }}
-              >
-                <Link to={`/${link.toLowerCase()}`}>{link}</Link>
-              </Button>
-            ))}
+            }}
+          >
+            <Button
+              onClick={() => navigate(`/teams`, {state: {previous: '/'}})}
+              variant="outlined"
+              sx={{
+                mt: 1, mb: 1,
+                width: '10rem',
+                height: '4rem',
+                margin: '0 1rem',
+                backgroundColor: 'rgba(117,185,231, 0.2)',
+              }}
+            >
+              <h4>All Teams</h4>
+            </Button>
           </Box>
         </>
       )}
@@ -88,7 +85,8 @@ export default function Home(
             style={{
               width: 'fit-content',
               overflow: 'hidden',
-            }}>
+            }}
+          >
             <DialogTitle id="alert-dialog-title">
               {`Evaluate Team ${dialog.teamId}`}
             </DialogTitle>
@@ -100,22 +98,25 @@ export default function Home(
                 alignItems: 'center',
                 justifyContent: 'center',
                 '& > :not(style)': {m: 1},
-                }}
-              >
-              {reviewerTeamAssessments.map((assessment) => (
+              }}
+            >
+              {reviewerTeams[dialog.teamIndex]?.teamAssessments.map(assessment => (
                 <Button
-                  key={assessment}
+                  key={assessment.id}
                   variant="outlined"
-                  onClick={() => navigate(`/evaluations/${dialog.teamId}/${assessment.toLowerCase()}`)}
+                  onClick={() => 
+                    navigate(`/evaluations/${dialog.teamId}/${assessment.name.toLowerCase()}`,
+                              {state: {previous: '/'}})
+                  }
                   sx={{
                     mt: 1, mb: 1,
                     width: '12rem',
                     height: '4rem',
                     backgroundColor: 'rgba(117,185,231, 0.2)',
                   }}
-                  disabled={grades.find(grade => grade.assessment == assessment)?.grade ? true : false}
+                  disabled={assessment.grade !== null}
                 >
-                  <h4>{snakeToTitle(assessment)}</h4>
+                  <h4>{StringUtils.snakeToTitle(assessment.name)}</h4>
                   <p
                     style={{
                       position:'absolute',
@@ -124,8 +125,10 @@ export default function Home(
                       color: 'palevioletred',
                       textTransform: 'none',
                     }}
-                  >{grades.find(grade => grade.assessment == assessment)?.grade 
-                    ? 'Submitted' : ''}</p>
+                  >
+                    {
+                      assessment.grade ? 'Submitted' : ''
+                    }</p>
                 </Button>
               ))}
             </DialogActions>
@@ -152,7 +155,7 @@ export default function Home(
               '& > :not(style)': {m: 1},
             }}
           >
-            {teams.map((team) => (
+            {reviewerTeams.map(({team}) => (
               <Button
                 key={team.id}
                 variant="outlined"
@@ -191,11 +194,14 @@ export default function Home(
               '& > :not(style)': {m: 1},
             }}
           >
-            {getReviewerAssessments().map((assessment) => (
+            {reviewerAssessments.map(assessment => (
               <Button
-                key={assessment}
+                key={assessment.id}
                 variant="outlined"
-                onClick={() => navigate(`/rubrics/${assessment.toLowerCase()}`)}
+                onClick={() => 
+                  navigate(`/rubrics/${assessment.name.toLowerCase()}`,
+                            {state: {previous: '/'}})
+                }
                 sx={{
                   mt: 1, mb: 1,
                   width: '12rem',
@@ -204,7 +210,7 @@ export default function Home(
                   backgroundColor: 'rgba(117,185,231, 0.2)',
                 }}
               >
-                <h4>{assessment.replace('_', ' ')}</h4>
+                <h4>{assessment.name.replace('_', ' ')}</h4>
               </Button>
             ))}
           </Box>

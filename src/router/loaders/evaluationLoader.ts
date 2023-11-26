@@ -1,36 +1,14 @@
-import IEvaluation from "../../interface/IEvaluation.view";
-import IGradedRubric from "../../interface/IGradedRubric.view";
-import IRubric from "../../interface/IRubric.view";
-import AuthService from "../../services/AuthService";
+import IReviewer from "../../interface/IReviewer.view";
 import EvaluationService from "../../services/EvaluationService";
-import RubricService from "../../services/RubricService";
+import AuthUtils from "../../utils/AuthUtils";
 
 export default async function evaluationLoader(teamId: number, assessment: string) {
 
-  const user = AuthService.getCurrentUser();
-  if (!user) {
-    throw new Response("Unauthorized", { status: 401 });
-  }
+  const user: IReviewer = AuthUtils.checkAndGetCurrentUser();
 
   const evaluationResponse : Response = 
-          await EvaluationService.getReviewerTeamEvaluation(assessment, user.id, teamId);
-  
-  if (evaluationResponse.ok) {
-    const evaluation = await evaluationResponse.json();
-    return {user: user, evaluation: evaluation, 
-            teamId: teamId, assessment: assessment};
-  }
+              await EvaluationService.getReviewerTeamEvaluation(assessment, user.id, teamId);
+  const evaluation = await evaluationResponse.json();
 
-  const rubricsResponse : Response = await RubricService.getAssessmentRubrics(assessment);
-  const rubrics : IRubric[] = await rubricsResponse.json();
-
-  const gradedRubrics: IGradedRubric[] = rubrics.map(rubric => (
-    {name: rubric.name, percentage: rubric.percentage, grade: 0}
-  ));
-  const evaluation : IEvaluation = {id: null, reviewerId: user.id, assessment:assessment, 
-                                    teamId: teamId, gradedRubrics: gradedRubrics};
-  
-
-  return {user: user, evaluation: evaluation, 
-          teamId: teamId, assessment: assessment};
+  return {user: user, evaluation: evaluation};
 }

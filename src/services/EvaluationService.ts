@@ -1,33 +1,30 @@
 import IEvaluation from "../interface/IEvaluation.view";
+import AuthUtils from "../utils/AuthUtils";
 import { EVALUATION_API_URL } from "../utils/constants/URL";
-import AuthService from "./AuthService";
 
 class EvaluationService {
 
-  getReviewerTeamEvaluation(assessment: string, reviewerId: number, teamId: number) : Promise<Response> {
-    const requestOptions = {
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
-    };
-    return fetch(EVALUATION_API_URL + `/evaluations/${assessment}/${reviewerId}/${teamId}`, requestOptions);
+  static async getReviewerTeamEvaluation(assessment: string, reviewerId: number, teamId: number) : Promise<Response> {
+    return fetch(EVALUATION_API_URL + `/evaluations/${assessment}/${reviewerId}/${teamId}`, AuthUtils.requestHeaders);
   }
 
-  draftEvaluation(evaluation: IEvaluation): Promise<Response> {
+  static async draftEvaluation(evaluation: IEvaluation): Promise<Response> {
     const requestOptions = {
+      ...AuthUtils.requestHeaders,
       method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
       body: JSON.stringify(evaluation)
     };
     return fetch(EVALUATION_API_URL + `/evaluations/draft`, requestOptions);
   }
 
-  async submitEvaluation(evaluation: IEvaluation) : Promise<Response> {
+  static async submitEvaluation(evaluation: IEvaluation) : Promise<Response> {
     const requestOptions = {
+      ...AuthUtils.requestHeaders,
       method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
       body: JSON.stringify(evaluation)
     };
     return fetch(EVALUATION_API_URL + `/evaluations/submit`, requestOptions);
   }
 
 }
-export default new EvaluationService();
+export default EvaluationService;

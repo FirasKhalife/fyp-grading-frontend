@@ -1,8 +1,9 @@
+import AssessmentEnum from "../enums/AssessmentEnum";
 
 interface INotification {
   id: number;
   teamId: number;
-  assessment: string;
+  assessment: AssessmentEnum;
   gradeFinalizedAt: Date;
   isRead: boolean;
 }

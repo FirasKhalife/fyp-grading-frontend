@@ -1,8 +1,8 @@
-import Role from "../enums/Role";
+import RoleEnum from "../enums/RoleEnum";
 
 interface IReviewerTeamRoles {
   reviewerId: number;
   teamId: number;
-  roles: Role[];
+  roles: RoleEnum[];
 }
 export default IReviewerTeamRoles;

@@ -2,13 +2,13 @@ import { useLoaderData } from "react-router-dom";
 import Rubrics from "../components/Rubrics";
 import IReviewer from "../interface/IReviewer.view";
 import IRubric from "../interface/IRubric.view";
-import Assessment from "../enums/Assessment";
+import AssessmentEnum from "../enums/AssessmentEnum";
 import Navbar from "../components/Navbar";
 
 interface IRubricData {
   user: IReviewer;
   rubrics: IRubric[];
-  assessment: Assessment;
+  assessment: AssessmentEnum;
 }
 
 export default function RubricsPage() {

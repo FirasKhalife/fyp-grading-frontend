@@ -1,24 +1,24 @@
 import { useLoaderData } from "react-router-dom";
-import Evaluation from "../components/Evaluation";
-import IEvaluation from "../interface/IEvaluation.view";
 import IReviewer from "../interface/IReviewer.view";
 import Navbar from "../components/Navbar";
+import IGradedEvaluation from "../interface/IGradedEvaluation.view";
+import TeamEvaluations from "../components/TeamEvaluations";
 
 interface IEvaluationData {
   user: IReviewer;
-  evaluation: IEvaluation;
+  evaluations: IGradedEvaluation[];
 }
 
-export default function EvaluationPage() {
+export default function TeamEvaluationsPage() {
 
-  const {user, evaluation} = useLoaderData() as IEvaluationData;
+  const {user, evaluations} = useLoaderData() as IEvaluationData;
 
   const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
 
   return (
     <>
       <Navbar user={user} notifications={notifications}/>
-      <Evaluation evaluation={evaluation}/>
+      <TeamEvaluations evaluations={evaluations}/>
     </>
   );
 }
