@@ -1,4 +1,4 @@
-import { RUBRIC_API_URL } from "../utils/constants/URL";
+import BASE_API_URL from "../utils/constants/URL";
 import AuthService from "./AuthService";
 
 class RubricService {
@@ -7,14 +7,14 @@ class RubricService {
     const requestOptions = {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
-    return fetch(RUBRIC_API_URL + `/rubrics`, requestOptions);
+    return fetch(BASE_API_URL + `/rubrics`, requestOptions);
   }
 
   getAssessmentRubrics(assessment: string) : Promise<Response> {
     const requestOptions = {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
-    return fetch(RUBRIC_API_URL + `/rubrics/${assessment}`, requestOptions);
+    return fetch(BASE_API_URL + `/rubrics/${assessment}`, requestOptions);
   }
 
 }

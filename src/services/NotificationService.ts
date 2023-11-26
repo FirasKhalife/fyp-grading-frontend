@@ -1,4 +1,4 @@
-import { NOTIFICATION_API_URL } from "../utils/constants/URL";
+import BASE_API_URL from "../utils/constants/URL";
 import AuthService from "./AuthService";
 
 class NotificationService {
@@ -7,7 +7,7 @@ class NotificationService {
     const requestOptions = {
       headers: Object.assign({ 'Content-Type': 'application/json' }, AuthService.setAuthHeader()),
     };
-    return fetch(NOTIFICATION_API_URL + `/notifications/`, requestOptions);
+    return fetch(BASE_API_URL + `/notifications/`, requestOptions);
   }
 
 }
