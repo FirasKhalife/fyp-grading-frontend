@@ -1,7 +1,7 @@
 import { NavigateFunction } from "react-router-dom";
 import IAuth from "../interface/IAuth.view";
 import IReviewerForm from "../interface/IReviewerForm.view";
-import { ADMIN_API_URL } from "../utils/constants/URL";
+import BASE_API_URL from "../utils/constants/URL";
 import IReviewer from "../interface/IReviewer.view";
 
 class AuthService {
@@ -12,7 +12,7 @@ class AuthService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(auth)
     };
-    return fetch( ADMIN_API_URL + '/auth/login', requestOptions);
+    return fetch( BASE_API_URL + '/auth/login', requestOptions);
   }
 
   static async register(reviewer: IReviewerForm) : Promise<Response> {
@@ -21,7 +21,7 @@ class AuthService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reviewer)
     };
-    return fetch( ADMIN_API_URL + '/auth/signup', requestOptions);
+    return fetch( BASE_API_URL + '/auth/signup', requestOptions);
   }
 
   static logout(navigate: NavigateFunction) {

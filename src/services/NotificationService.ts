@@ -1,5 +1,5 @@
 import AuthUtils from "../utils/AuthUtils";
-import { NOTIFICATION_API_URL } from "../utils/constants/URL";
+import BASE_API_URL from "../utils/constants/URL";
 
 class NotificationService {
 
@@ -8,7 +8,7 @@ class NotificationService {
       ...AuthUtils.requestHeaders,
       method: 'PUT',
     }
-    fetch(NOTIFICATION_API_URL + `/notifications/${id}`, requestOptions);
+    fetch(BASE_API_URL + `/notifications/${id}`, requestOptions);
   }
 
   static readAllNotifications() {
@@ -16,11 +16,11 @@ class NotificationService {
       ...AuthUtils.requestHeaders,
       method: 'PUT',
     }
-    fetch(NOTIFICATION_API_URL + `/notifications/`, requestOptions);
+    fetch(BASE_API_URL + `/notifications/`, requestOptions);
   }
 
   static async getNotifications() : Promise<Response> {
-    return fetch(NOTIFICATION_API_URL + `/notifications/`, AuthUtils.requestHeaders);
+    return fetch(BASE_API_URL + `/notifications/`, AuthUtils.requestHeaders);
   }
 
 }
