@@ -13,10 +13,10 @@ void setBuildStatus(String message, String state) {
 
 pipeline {
     agent {
-      docker {
-        image 'node:20.10.0-alpine3.19'
-        args '-p 3000:3000'
-      }
+        docker {
+          image 'node:lts-buster-slim'
+          args '-p 3000:3000'
+        }
     }
 
     environment {
