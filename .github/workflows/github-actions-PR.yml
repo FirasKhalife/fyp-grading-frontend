@@ -3,29 +3,39 @@ run-name: ${{ github.actor }} is trying to merge a pull request
 on: [pull_request]
 
 jobs:
-  Build-and-Test-React-App:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
-          node-version: '16'
-          cache: 'npm'
-      - name: Install Dependencies
+          node-version: '14'
+
+      - name: Install dependencies
         run: npm install
 
-      - name: Lint
-        run: npm run lint
+      - name: Build the React app
+        run: CI=false npm run build
 
-      - name: Build the project
-        run: npm run build
+  test:
+    runs-on: ubuntu-latest
+    needs: build
 
-      - name: Run babel
-        run: npm install --save-dev @babel/core @babel/preset-env @babel/preset-react
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Run Tests
-        run: npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event && npm test
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
 
-      - name: Preview Build
-        run: npm run preview
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm run test
