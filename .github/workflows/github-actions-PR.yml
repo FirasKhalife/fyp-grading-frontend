@@ -21,6 +21,9 @@ jobs:
       - name: Build the project
         run: npm run build
 
+      - name: Run babel
+        run: npm install --save-dev @babel/core @babel/preset-env @babel/preset-react
+
       - name: Run Tests
         run: npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event && npm test
 
