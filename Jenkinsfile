@@ -106,7 +106,7 @@ pipeline {
     }
     post {
         success {
-            node {
+            node('') {
                 setBuildStatus("Build succeeded", "SUCCESS");
                 emailext (
                     subject: "Build SUCCESS - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
@@ -118,7 +118,7 @@ pipeline {
             }
         }
         failure {
-            node {
+            node('') {
                 setBuildStatus("Build failed", "FAILURE");
                 emailext (
                     attachLog: true,
