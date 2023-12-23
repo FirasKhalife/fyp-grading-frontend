@@ -14,7 +14,15 @@ jobs:
           cache: 'npm'
       - name: Install Dependencies
         run: npm install
+
+      - name: Lint
+        run: npm run lint
+
       - name: Build the project
         run: npm run build
+
       - name: Run Tests
-        run: npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event & npm test
+        run: npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event && npm test
+
+      - name: Preview Build
+        run: npm run preview
