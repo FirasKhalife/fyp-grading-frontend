@@ -14,7 +14,6 @@ void setBuildStatus(String message, String state) {
 pipeline {
     agent any
 
-
     environment {
        IMAGE_NAME = 'fyp-grading-evaluation-service'
        BRANCH_NAME = 'evaluation-service-pipeline'
@@ -107,26 +106,30 @@ pipeline {
     }
     post {
         success {
-            setBuildStatus("Build succeeded", "SUCCESS");
-            emailext (
-                subject: "Build SUCCESS - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The build of ${env.JOB_NAME} was successful! Build Number: ${env.BUILD_NUMBER}",
-                from: "gaellesaid65@gmail.com",
-                to: "gaellesaid5@gmail.com",
-                replyTo: "gaellesaid65@gmail.com"
-            )
+            node {
+                setBuildStatus("Build succeeded", "SUCCESS");
+                emailext (
+                    subject: "Build SUCCESS - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: "The build of ${env.JOB_NAME} was successful! Build Number: ${env.BUILD_NUMBER}",
+                    from: "gaellesaid65@gmail.com",
+                    to: "gaellesaid5@gmail.com",
+                    replyTo: "gaellesaid65@gmail.com"
+                )
+            }
         }
         failure {
-            setBuildStatus("Build failed", "FAILURE");
-            emailext (
-                attachLog: true,
-                subject: "Build FAILURE - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The build of ${env.JOB_NAME} failed. Please find the attached logs for details. Build Number: ${env.BUILD_NUMBER}\nPlease go to ${env.BUILD_URL}/consoleText for more details.",
-                from: "gaellesaid65@gmail.com",
-                to: "gaellesaid5@gmail.com",
-                replyTo: "gaellesaid65@gmail.com",
-                attachmentsPattern: 'build-logs.zip'
-            )
+            node {
+                setBuildStatus("Build failed", "FAILURE");
+                emailext (
+                    attachLog: true,
+                    subject: "Build FAILURE - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: "The build of ${env.JOB_NAME} failed. Please find the attached logs for details. Build Number: ${env.BUILD_NUMBER}\nPlease go to ${env.BUILD_URL}/consoleText for more details.",
+                    from: "gaellesaid65@gmail.com",
+                    to: "gaellesaid5@gmail.com",
+                    replyTo: "gaellesaid65@gmail.com",
+                    attachmentsPattern: 'build-logs.zip'
+                )
+            }
         }
     }
 }

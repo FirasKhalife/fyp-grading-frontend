@@ -10,7 +10,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16' # Specify the Node.js version you want to use
+          node-version: '16'
           cache: 'npm'
       - name: Install Dependencies
         run: npm install
@@ -18,7 +18,3 @@ jobs:
         run: npm run build
       - name: Run Tests
         run: npm test
-      - uses: actions/upload-artifact@v3
-        with:
-          name: Build Artifacts
-          path: build
