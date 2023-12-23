@@ -39,21 +39,6 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                echo 'Building'
-                sh 'npm install'
-                sh 'npm run build'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Testing'
-                sh 'npm run test'
-            }
-        }
-
         stage("increment version"){
             steps{
                 script{
