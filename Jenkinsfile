@@ -15,11 +15,10 @@ pipeline {
     agent any
 
     environment {
-       IMAGE_NAME = 'fyp-grading-evaluation-service'
-       BRANCH_NAME = 'evaluation-service-pipeline'
-       GitHub_REPO = 'fyp-grading-evaluation-service'
+       IMAGE_NAME = 'fyp-grading-frontend'
+       BRANCH_NAME = 'frontend-pipeline'
+       GitHub_REPO = 'fyp-grading-frontend'
        GitHub_USR = 'FirasKhalife'
-       VERSION = readMavenPom().getVersion()
     }
 
     stages {
