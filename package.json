@@ -7,7 +7,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "react-scripts test"
+  },
+  "eslintConfig": {
+      "extends": [
+        "react-app",
+        "react-app/jest"
+      ]
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
@@ -16,9 +23,11 @@
     "@mui/material": "^5.14.16",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.18.0"
+    "react-router-dom": "^6.21.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
     "@types/node": "^20.9.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
