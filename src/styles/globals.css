@@ -1,0 +1,251 @@
+@import 'tailwindcss';
+
+/* Dark mode follows the `.dark` class on <html> (set from the theme toggle or the OS preference). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Assay design tokens. Values are copied from the `.t` and `.t.dark` blocks of the design boards
+ * (design/assay-canvas). Dark is designed separately, not inverted.
+ */
+:root {
+  --paper: #f6f5f1;
+  --surface: #ffffff;
+  --raised: #f1f0eb;
+  --line: #d9d6cc;
+  --line2: #b9b6ac;
+  --ink: #1b1f24;
+  --ink2: #3b424c;
+  --muted: #545b66;
+  --faint: #8a919c;
+  --pri: #1f4e8c;
+  --pri-h: #163a69;
+  --on-pri: #ffffff;
+  --pri-soft: #eef3fa;
+  --amber: #94470c;
+  --amber-soft: #fbeedf;
+  --amber-line: #c98a4b;
+  --amber-bg: #fff9f2;
+  --green: #1d6a4c;
+  --green-soft: #e3f1ea;
+  --banner: #1b1f24;
+  --banner-ink: #e7e9ec;
+  --banner-muted: #c3c8d0;
+  --banner-line: #4a525e;
+  --banner-accent: #8db4ee;
+  --l4: #1f3f70;
+  --l4i: #ffffff;
+  --l3: #44699f;
+  --l3i: #ffffff;
+  --l2: #a9bedd;
+  --l2i: #1b1f24;
+  --l1: #dce5f2;
+  --l1i: #1b1f24;
+  --l0: #f1f0eb;
+  --l0i: #1b1f24;
+  --l0b: #545b66;
+  --sel: #1f4e8c;
+  --logo: #1f3f70;
+  --shadow: 0 12px 32px rgba(27, 31, 36, 0.14);
+  --shadow-pop: 0 16px 40px rgba(27, 31, 36, 0.18);
+  color-scheme: light;
+}
+
+.dark {
+  --paper: #111418;
+  --surface: #181c22;
+  --raised: #1f242b;
+  --line: #2e353f;
+  --line2: #4a525e;
+  --ink: #e7e9ec;
+  --ink2: #c9ced6;
+  --muted: #a3aab5;
+  --faint: #7d8590;
+  --pri: #8db4ee;
+  --pri-h: #b5cff5;
+  --on-pri: #0e1620;
+  --pri-soft: #1c2a3d;
+  --amber: #f0a65e;
+  --amber-soft: #33240f;
+  --amber-line: #a8702f;
+  --amber-bg: #221a10;
+  --green: #6fcb9f;
+  --green-soft: #11291f;
+  --banner: #0b0d10;
+  --banner-ink: #e7e9ec;
+  --banner-muted: #a3aab5;
+  --banner-line: #4a525e;
+  --l4: #b5cff5;
+  --l4i: #0e1620;
+  --l3: #6f98d6;
+  --l3i: #0e1620;
+  --l2: #34507a;
+  --l2i: #e7e9ec;
+  --l1: #233247;
+  --l1i: #e7e9ec;
+  --l0: transparent;
+  --l0i: #e7e9ec;
+  --l0b: #6b7380;
+  --sel: #8db4ee;
+  --logo: #8db4ee;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-pri: var(--pri);
+  --color-pri-h: var(--pri-h);
+  --color-on-pri: var(--on-pri);
+  --color-pri-soft: var(--pri-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-amber-line: var(--amber-line);
+  --color-amber-bg: var(--amber-bg);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-banner: var(--banner);
+  --color-banner-ink: var(--banner-ink);
+  --color-banner-muted: var(--banner-muted);
+  --color-banner-line: var(--banner-line);
+  --color-banner-accent: var(--banner-accent);
+  --color-sel: var(--sel);
+  --color-logo: var(--logo);
+  --color-l4: var(--l4);
+  --color-l4i: var(--l4i);
+  --color-l3: var(--l3);
+  --color-l3i: var(--l3i);
+  --color-l2: var(--l2);
+  --color-l2i: var(--l2i);
+  --color-l1: var(--l1);
+  --color-l1i: var(--l1i);
+  --color-l0: var(--l0);
+  --color-l0i: var(--l0i);
+  --color-l0b: var(--l0b);
+
+  --radius-card: 14px;
+  --radius-ctl: 10px;
+  --radius-chip: 6px;
+
+  --shadow-pop: var(--shadow-pop);
+  --shadow-float: var(--shadow);
+
+  --breakpoint-md: 761px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 22px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--pri);
+  }
+  a:hover {
+    color: var(--pri-h);
+  }
+  :focus-visible {
+    outline: 3px solid var(--sel);
+    outline-offset: 2px;
+  }
+  /* Radix focus scopes put focus on the container; keep that invisible. */
+  [data-radix-popper-content-wrapper] > :focus:not(:focus-visible) {
+    outline: none;
+  }
+  ::selection {
+    background: var(--pri-soft);
+  }
+  .dark ::selection {
+    background: #34507a;
+  }
+}
+
+@layer components {
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Level fills: background + text colour of each level, used by marks, chips, cells and tiles. */
+  .f4 {
+    background: var(--l4);
+    color: var(--l4i);
+  }
+  .f3 {
+    background: var(--l3);
+    color: var(--l3i);
+  }
+  .f2 {
+    background: var(--l2);
+    color: var(--l2i);
+  }
+  .f1 {
+    background: var(--l1);
+    color: var(--l1i);
+  }
+  .f0 {
+    background: var(--l0);
+    color: var(--l0i);
+    border: 1.5px dashed var(--l0b);
+  }
+
+  /* Skeleton shimmer, the only animation besides 150 ms colour fades. */
+  .sk {
+    display: block;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--raised) 0%, var(--line) 50%, var(--raised) 100%);
+    background-size: 200% 100%;
+    animation: assay-sk 1.4s ease-in-out infinite;
+  }
+  @keyframes assay-sk {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+
+  .spin {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--banner-line);
+    border-top-color: #ffffff;
+    animation: assay-spin 1s linear infinite;
+  }
+  @keyframes assay-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
