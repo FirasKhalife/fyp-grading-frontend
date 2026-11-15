@@ -180,10 +180,6 @@ function DayGrid({ data, editable }: { data: ScheduleView; editable: boolean }) 
   )
 }
 
-function slotLabel(s: ScheduleSlot): string {
-  return `Team ${s.team.name}, ${fmtDay(s.slot.start)} ${fmtTime(s.slot.start)}, ${s.slot.room}, jury ${s.jury.map((j) => j.name).join(', ')}${s.conflict ? ', conflict' : ''}`
-}
-
 function SlotBody({ s }: { s: ScheduleSlot }) {
   return (
     <>
@@ -195,6 +191,7 @@ function SlotBody({ s }: { s: ScheduleSlot }) {
         {s.slot.room} · {s.jury.map((j) => j.initials).join(', ')}
       </span>
       {s.conflict && <span className="font-semibold text-amber">Conflict</span>}
+      <span className="sr-only">. Jury: {s.jury.map((j) => j.name).join(', ')}</span>
     </>
   )
 }
@@ -209,15 +206,16 @@ const slotCls = (s: ScheduleSlot) =>
 function SlotCard({ s, editable }: { s: ScheduleSlot; editable: boolean }) {
   if (!editable)
     return (
-      <div className={slotCls(s)} aria-label={slotLabel(s)} role="group">
+      <div className={slotCls(s)}>
         <SlotBody s={s} />
       </div>
     )
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button type="button" aria-label={`${slotLabel(s)}. Change slot`} className={cn(slotCls(s), 'cursor-pointer hover:shadow-[0_0_0_2px_var(--pri)]')}>
+        <button type="button" className={cn(slotCls(s), 'cursor-pointer hover:shadow-[0_0_0_2px_var(--pri)]')}>
           <SlotBody s={s} />
+          <span className="sr-only">. Change the slot</span>
         </button>
       </Popover.Trigger>
       <Popover.Portal>

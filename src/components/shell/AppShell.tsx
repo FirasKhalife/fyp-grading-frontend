@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Outlet, ScrollRestoration } from 'react-router'
 import { useLiveUpdates } from '@/api/queries'
 import { AppHeader } from './AppHeader'
@@ -22,7 +23,15 @@ export function AppShell() {
       <SkipLink />
       <DemoBanner />
       <AppHeader />
-      <Outlet />
+      <Suspense
+        fallback={
+          <div role="status" aria-label="Loading" className="mx-auto max-w-[1360px] px-4 pt-7 md:px-10">
+            <span className="sk block h-10 w-72" />
+          </div>
+        }
+      >
+        <Outlet />
+      </Suspense>
       <ScrollRestoration />
     </div>
   )

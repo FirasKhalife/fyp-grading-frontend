@@ -131,7 +131,8 @@ function route(fn: (c: Ctx) => Response | Promise<Response>, opts: { write?: boo
       sessionOf(request)
       if (opts.needsCopy !== false) requireCopy()
       const user = identify(request, store.getState())
-      if (simulation === 'error' && !opts.write && !request.url.includes('/api/me') && !request.url.includes('/api/demo')) {
+      const path = new URL(request.url).pathname
+      if (simulation === 'error' && !opts.write && path !== '/api/me' && !path.startsWith('/api/demo') && !path.startsWith('/api/notifications')) {
         throw new Problem(503, 'service-unavailable', "The server didn't respond.")
       }
       return await fn({ request, params, user, read: () => store.getState() })

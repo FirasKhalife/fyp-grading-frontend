@@ -30,16 +30,17 @@ function ThemedToaster() {
   )
 }
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, authOverride }: { children: ReactNode; authOverride?: (children: ReactNode) => ReactNode }) {
   const [qc] = useState(makeQueryClient)
+  const inner = (
+    <>
+      {children}
+      <ThemedToaster />
+    </>
+  )
   return (
     <ThemeProvider>
-      <QueryClientProvider client={qc}>
-        <AuthProvider>
-          {children}
-          <ThemedToaster />
-        </AuthProvider>
-      </QueryClientProvider>
+      <QueryClientProvider client={qc}>{authOverride ? authOverride(inner) : <AuthProvider>{inner}</AuthProvider>}</QueryClientProvider>
     </ThemeProvider>
   )
 }

@@ -13,7 +13,8 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // Small hooks and helpers live next to the components that use them; fast refresh still works for the rest.
+      'react-refresh/only-export-components': 'off',
     },
   },
 )

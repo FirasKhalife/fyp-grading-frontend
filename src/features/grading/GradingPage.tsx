@@ -330,13 +330,13 @@ function GradingForm({ view }: { view: GradingView }) {
                           e.preventDefault()
                           goTo(`c${i + 1}`)
                         }}
-                        aria-label={`Criterion ${i + 1}, ${c.name}: ${l === null ? 'not scored' : `${LEVEL_NAMES[l]}, level ${l}`}`}
+                        aria-label={`#${i + 1} ${l === null ? '–' : l}. Criterion ${i + 1}, ${c.name}: ${l === null ? 'not scored' : LEVEL_NAMES[l]}`}
                         className={cn(
                           'flex min-h-11 flex-col items-center justify-center rounded-[8px] border border-transparent no-underline hover:outline-2 hover:outline-offset-1 hover:outline-pri',
                           l === null ? 'border-[1.5px] border-dashed border-amber-line bg-surface text-amber hover:text-amber' : FILL[l],
                         )}
                       >
-                        <span className="text-[10px] leading-3 opacity-85">#{i + 1}</span>
+                        <span className="text-[10px] leading-3 opacity-85">#{i + 1}</span>{' '}
                         <span className="mono text-[15px] font-semibold leading-[18px]">{l === null ? '–' : l}</span>
                       </a>
                     )

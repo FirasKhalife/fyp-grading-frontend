@@ -30,13 +30,13 @@ export function cellModel(row: GridRow, c: TeamAssessmentInfo): CellModel {
       note,
       band: b,
       released: !!c.release,
-      aria: `Team ${t.name}, ${a.name}: ${formatScore(c.grade)}, ${LEVEL_NAMES[b]} band, ${note}`,
+      aria: `${formatScore(c.grade)} ${note}. Team ${t.name}, ${a.name}, ${LEVEL_NAMES[b]} band`,
     }
   }
   if (c.overdue) {
     const draft = c.drafts > 0
     const note = `${draft ? 'Draft' : 'Not started'} · due ${fmtShort(a.due)}`
-    return { kind: 'overdue', main: 'Overdue', note, band: null, released: false, aria: `Team ${t.name}, ${a.name}: overdue, ${note}` }
+    return { kind: 'overdue', main: 'Overdue', note, band: null, released: false, aria: `Overdue ${note}. Team ${t.name}, ${a.name}` }
   }
   let note = `Due ${fmtShort(a.due)}`
   if (a.key === 'FINAL_PRESENTATION' && t.defense) {
@@ -50,7 +50,7 @@ export function cellModel(row: GridRow, c: TeamAssessmentInfo): CellModel {
     note,
     band: null,
     released: false,
-    aria: `Team ${t.name}, ${a.name}: ${main} submitted, ${note}`,
+    aria: `${main} ${note}. Team ${t.name}, ${a.name}, ${main} reviewers submitted`,
   }
 }
 
@@ -165,7 +165,7 @@ export function GradeGrid({ rows, cols, releaseCounts }: { rows: GridRow[]; cols
                       <span className="flex items-center justify-between gap-1.5">
                         <span className="mono text-[17px] font-semibold">{m.main}</span>
                         {m.band !== null && <LevelBars level={m.band as 0} />}
-                      </span>
+                      </span>{' '}
                       <span className="inline-flex items-center gap-1 text-[12px] font-medium leading-4">
                         {m.released && <Icon name="eye" size={12} />}
                         {m.kind === 'overdue' && <Icon name="clock" size={12} />}
@@ -182,8 +182,8 @@ export function GradeGrid({ rows, cols, releaseCounts }: { rows: GridRow[]; cols
                   {...cellProps(r, width - 1)}
                   aria-label={
                     row.final !== null
-                      ? `Team ${row.team.name} final grade ${formatScore(row.final)}, ${row.finalVisible ? 'visible to students' : 'not visible to students yet'}`
-                      : `Team ${row.team.name} final grade pending, ${row.needs}`
+                      ? `${formatScore(row.final)} ${row.finalVisible ? 'Visible to students' : 'Computed · not visible yet'}. Team ${row.team.name} final grade, ${LEVEL_NAMES[bandOf(row.final)]} band`
+                      : `Pending ${row.needs}. Team ${row.team.name} final grade`
                   }
                   className={cn(
                     CELL,
@@ -193,7 +193,7 @@ export function GradeGrid({ rows, cols, releaseCounts }: { rows: GridRow[]; cols
                   <span className="flex items-center justify-between gap-1.5">
                     <span className="mono text-[17px] font-semibold">{row.final !== null ? formatScore(row.final) : 'Pending'}</span>
                     {row.final !== null && <LevelBars level={bandOf(row.final)} />}
-                  </span>
+                  </span>{' '}
                   <span className="inline-flex items-center gap-1 text-[12px] font-medium leading-4">
                     {row.final !== null && row.finalVisible && <Icon name="eye" size={12} />}
                     {row.final !== null ? (row.finalVisible ? 'Visible to students' : 'Computed · not visible yet') : row.needs}

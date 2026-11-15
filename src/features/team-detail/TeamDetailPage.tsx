@@ -473,7 +473,7 @@ export function ReviewersCard({ v }: { v: Pick<TeamDetailView, 'team' | 'reviewe
     <Card as="section" aria-labelledby={`rv-h-${v.team.id}`} className="flex flex-col gap-2 p-5">
       <div className="flex items-center justify-between">
         <h2 id={`rv-h-${v.team.id}`} className="m-0 text-[16px] font-semibold">
-          Reviewers
+          Reviewers<span className="sr-only"> of Team {v.team.name}</span>
         </h2>
         {!adding && c.total < 5 && (
           <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>

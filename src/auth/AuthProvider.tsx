@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, setTokenProvider, setUnauthorizedHandler } from '@/api/client'
 import { repository, type Viewer } from '@/api/repository'
 import { markOvernightReset } from './demo-session'
@@ -53,7 +53,10 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
   const [ready, setReady] = useState(false)
   const [creating, setCreating] = useState(false)
 
-  signedInAs = persona
+  // Layout effects run before any child's data effects, so the first query already carries the token.
+  useLayoutEffect(() => {
+    signedInAs = persona
+  }, [persona])
 
   useEffect(() => {
     setUnauthorizedHandler(() => {

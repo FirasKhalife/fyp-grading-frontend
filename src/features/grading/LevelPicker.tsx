@@ -38,6 +38,16 @@ export function LevelPicker({
       onValueChange={(v) => onChange(Number(v) as Level)}
       disabled={locked}
       className="grid grid-cols-1 gap-2 md:grid-cols-5"
+      onKeyDown={(e) => {
+        // Arrow keys pick the next level, like a native radio group. Radix moves the focus; picking
+        // here too keeps selection in step even when the key is released before its deferred focus.
+        if (locked) return
+        const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+        const from = Number((e.target as HTMLElement).getAttribute('value'))
+        if (!dir || Number.isNaN(from)) return
+        const i = LEVELS.indexOf(from as Level)
+        onChange(LEVELS[(i + dir + LEVELS.length) % LEVELS.length]!)
+      }}
     >
       {LEVELS.map((l) => {
         const desc = l === 0 ? LEVEL_ZERO_DESCRIPTION : criterion.descriptions[l - 1]

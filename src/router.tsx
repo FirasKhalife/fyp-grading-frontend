@@ -1,20 +1,22 @@
-import type { ReactNode } from 'react'
+import { lazy, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate, Outlet, useLocation, type RouteObject } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import type { PersonaRole } from '@/domain/types'
 import { AppShell } from '@/components/shell/AppShell'
 import { AuthCallbackPage } from '@/features/landing/AuthCallbackPage'
 import { LandingPage } from '@/features/landing/LandingPage'
-import { GradingPage } from '@/features/grading/GradingPage'
-import { MyTeamsPage } from '@/features/my-teams/MyTeamsPage'
-import { OverviewPage } from '@/features/overview/OverviewPage'
-import { RubricEditorPage } from '@/features/rubrics/RubricEditorPage'
-import { RubricsPage } from '@/features/rubrics/RubricsPage'
-import { SchedulePage } from '@/features/schedule/SchedulePage'
-import { StudentHomePage } from '@/features/student/StudentHomePage'
-import { TeamDetailPage } from '@/features/team-detail/TeamDetailPage'
-import { TeamsPage } from '@/features/teams/TeamsPage'
 import { CrashPage, NoPermissionPage, NotFoundPage, ResetInProgressPage, SessionExpiredPage } from '@/features/utility/UtilityPages'
+
+/** Screens load on first visit, so the landing page stays light. */
+const GradingPage = lazy(() => import('@/features/grading/GradingPage').then((m) => ({ default: m.GradingPage })))
+const MyTeamsPage = lazy(() => import('@/features/my-teams/MyTeamsPage').then((m) => ({ default: m.MyTeamsPage })))
+const OverviewPage = lazy(() => import('@/features/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })))
+const RubricEditorPage = lazy(() => import('@/features/rubrics/RubricEditorPage').then((m) => ({ default: m.RubricEditorPage })))
+const RubricsPage = lazy(() => import('@/features/rubrics/RubricsPage').then((m) => ({ default: m.RubricsPage })))
+const SchedulePage = lazy(() => import('@/features/schedule/SchedulePage').then((m) => ({ default: m.SchedulePage })))
+const StudentHomePage = lazy(() => import('@/features/student/StudentHomePage').then((m) => ({ default: m.StudentHomePage })))
+const TeamDetailPage = lazy(() => import('@/features/team-detail/TeamDetailPage').then((m) => ({ default: m.TeamDetailPage })))
+const TeamsPage = lazy(() => import('@/features/teams/TeamsPage').then((m) => ({ default: m.TeamsPage })))
 
 function RequireAuth() {
   const { persona, ready } = useAuth()
