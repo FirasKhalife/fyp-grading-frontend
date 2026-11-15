@@ -34,7 +34,7 @@ export function cellModel(row: GridRow, c: TeamAssessmentInfo): CellModel {
     }
   }
   if (c.overdue) {
-    const draft = c.reviewers.some((r) => r.state === 'DRAFT')
+    const draft = c.drafts > 0
     const note = `${draft ? 'Draft' : 'Not started'} · due ${fmtShort(a.due)}`
     return { kind: 'overdue', main: 'Overdue', note, band: null, released: false, aria: `Team ${t.name}, ${a.name}: overdue, ${note}` }
   }

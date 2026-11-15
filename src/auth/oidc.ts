@@ -1,12 +1,15 @@
 import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts'
 
 /**
- * Real sign-in: Authorization Code + PKCE against Keycloak, through a public SPA client.
- * Enabled when VITE_OIDC_AUTHORITY is set (e.g. https://demo.example.dev/realms/assay).
- * Persona cards pass a login_hint so the realm's demo flow can sign the persona in without typing.
+ * Real sign-in against Keycloak (realm `assay`, public client `assay-spa`), enabled when
+ * VITE_OIDC_AUTHORITY is set, e.g. https://demo.example.dev/realms/assay.
+ * - Persona cards: a token request with the persona's username and the shared demo password
+ *   (VITE_DEMO_PASSWORD). These accounts are public by design; the password is not a secret.
+ * - "Sign in with email": Authorization Code + PKCE, with a login_hint.
  */
 const authority = import.meta.env.VITE_OIDC_AUTHORITY as string | undefined
 const clientId = (import.meta.env.VITE_OIDC_CLIENT_ID as string | undefined) ?? 'assay-spa'
+const demoPassword = (import.meta.env.VITE_DEMO_PASSWORD as string | undefined) ?? ''
 
 export const oidcEnabled = Boolean(authority)
 
@@ -27,13 +30,19 @@ export function userManager(): UserManager {
   return manager
 }
 
-export async function signInAs(username: string, returnTo: string): Promise<void> {
-  await userManager().signinRedirect({ login_hint: username, state: { returnTo } })
+/** One-click persona sign-in (password grant on the public demo accounts). */
+export async function signInPersona(username: string): Promise<User> {
+  return userManager().signinResourceOwnerCredentials({ username, password: demoPassword })
+}
+
+/** "Sign in with email": the code flow with PKCE. */
+export async function signInWithEmail(loginHint?: string, returnTo = '/home'): Promise<void> {
+  await userManager().signinRedirect({ login_hint: loginHint, state: { returnTo } })
 }
 
 export async function completeSignIn(): Promise<{ user: User; returnTo: string }> {
   const user = await userManager().signinRedirectCallback()
-  const returnTo = (user.state as { returnTo?: string } | undefined)?.returnTo ?? '/'
+  const returnTo = (user.state as { returnTo?: string } | undefined)?.returnTo ?? '/home'
   return { user, returnTo }
 }
 

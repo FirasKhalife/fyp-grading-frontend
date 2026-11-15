@@ -76,6 +76,7 @@ export interface TeamAssessmentInfo {
   assessment: Assessment
   expected: number
   submitted: number
+  drafts: number
   /** Plain average once every reviewer has submitted. */
   grade: number | null
   release: Release | null

@@ -4,6 +4,8 @@
  * a calendar date, so the demo never goes stale.
  */
 
+import { parisWall } from './tz'
+
 const DAY_MS = 86_400_000
 
 let fixedNow: Date | null = null
@@ -13,8 +15,14 @@ export function setDemoNow(d: Date | null): void {
   fixedNow = d
 }
 
+/** "Now" on the Paris wall clock (see tz.ts). Tests pin it with setDemoNow. */
 export function now(): Date {
-  return fixedNow ? new Date(fixedNow) : new Date()
+  return fixedNow ? new Date(fixedNow) : parisWall()
+}
+
+/** The real instant, for anything computed with Intl in a time zone. */
+export function realNow(): Date {
+  return new Date()
 }
 
 function startOfDay(d: Date): Date {
@@ -154,7 +162,7 @@ export function fmtAgo(iso: string): string {
 }
 
 /** Time left until the next midnight in Europe/Paris, e.g. "9 h 28 min". */
-export function untilParisMidnight(at: Date = now()): string {
+export function untilParisMidnight(at: Date = realNow()): string {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Paris',
     hour: '2-digit',

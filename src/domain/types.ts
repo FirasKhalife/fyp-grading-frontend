@@ -82,9 +82,16 @@ export interface Team {
 
 export type EvaluationStatus = 'DRAFT' | 'SUBMITTED'
 
+export type AuditKind = 'CREATED' | 'LEVEL_CHANGED' | 'COMMENT_CHANGED' | 'OVERALL_COMMENT_CHANGED' | 'SUBMITTED'
+
+/** One line of a draft's audit trail ("Jane changed Problem formulation 2 → 3"). */
 export interface AuditEntry {
   at: string
-  text: string
+  kind: AuditKind
+  criterionId?: string | null
+  criterionName?: string | null
+  from?: Level | null
+  to?: Level | null
 }
 
 export interface Evaluation {

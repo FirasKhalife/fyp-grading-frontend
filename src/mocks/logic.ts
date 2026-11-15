@@ -21,10 +21,11 @@ import type {
   TeamsListView,
 } from '@/api/views'
 import { ASSESSMENTS, assessmentDef } from '@/domain/assessments'
-import { LEVEL_NAMES } from '@/domain/levels'
+import { auditText } from '@/domain/audit'
 import type {
   Assessment,
   AssessmentKey,
+  AuditEntry,
   Criterion,
   Evaluation,
   Level,
@@ -37,7 +38,6 @@ import {
   addMinutes,
   daysFromToday,
   fmtDay,
-  fmtShort,
   fmtTime,
   isoDay,
   now,
@@ -47,10 +47,12 @@ import {
 import { finalGrade, formatScore, reviewerScore, spread, teamAssessmentGrade, weightsTotal } from '@/lib/scoring'
 import { dueOf, nextId, type DemoState } from './db'
 
+/** A business-rule refusal. `code` is the contract's stable problem code. */
 export class DemoError extends Error {
   constructor(
-    public status: 400 | 403 | 404 | 409,
+    public status: 400 | 403 | 404 | 409 | 422,
     message: string,
+    public code: string = status === 404 ? 'not-found' : status === 403 ? 'forbidden' : status === 400 ? 'validation-failed' : 'conflict',
   ) {
     super(message)
   }
@@ -130,6 +132,7 @@ export function teamAssessment(state: DemoState, teamId: string, key: Assessment
     assessment: a,
     expected: people.length,
     submitted: submitted.length,
+    drafts: reviewers.filter((r) => r.state === 'DRAFT').length,
     grade,
     release: releaseOf(state, teamId, key),
     reviewers,
@@ -246,7 +249,7 @@ export function gradingView(state: DemoState, userId: string, teamId: string, ke
   const t = team(state, teamId)
   const a = assessment(state, key)
   if (!roleOn(t, userId, a.role)) {
-    throw new DemoError(403, `You don't grade the ${a.name} for Team ${t.name}.`)
+    throw new DemoError(403, `You don't grade the ${a.name} for Team ${t.name}.`, 'not-assigned')
   }
   const peers = holders(state, t, a.role).map((p) => {
     const e = evaluationOf(state, teamId, key, p.id)
@@ -485,7 +488,7 @@ export interface DraftPatch {
 export function saveDraft(state: DemoState, userId: string, teamId: string, key: AssessmentKey, patch: DraftPatch): Evaluation {
   const view = gradingView(state, userId, teamId, key)
   let e = view.evaluation
-  if (e?.status === 'SUBMITTED') throw new DemoError(409, 'This evaluation is submitted and locked.')
+  if (e?.status === 'SUBMITTED') throw new DemoError(409, 'This evaluation is submitted and locked.', 'evaluation-submitted')
   const me = reviewer(state, userId)
   if (!e) {
     e = {
@@ -499,45 +502,51 @@ export function saveDraft(state: DemoState, userId: string, teamId: string, key:
       overallComment: '',
       updatedAt: stamp(),
       submittedAt: null,
-      history: [],
+      history: [{ at: stamp(), kind: 'CREATED' }],
     }
     state.evaluations.push(e)
   }
-  const changes: string[] = []
+  const at = stamp()
+  const levelChanges: AuditEntry[] = []
+  const log = (entry: Omit<AuditEntry, 'at'>) => {
+    const last = e!.history[e!.history.length - 1]
+    // Typing produces many saves: keep one comment line per criterion, not one per keystroke.
+    if (entry.kind !== 'LEVEL_CHANGED' && last && last.kind === entry.kind && last.criterionId === (entry.criterionId ?? null)) last.at = at
+    else e!.history.push({ at, criterionId: null, criterionName: null, from: null, to: null, ...entry })
+  }
   for (const [cid, lvl] of Object.entries(patch.levels ?? {})) {
     const before = e.levels[cid] ?? null
     if (before === lvl) continue
     const c = view.rubric.criteria.find((x) => x.id === cid)
     if (!c) throw new DemoError(400, 'Unknown criterion')
     e.levels[cid] = lvl
-    const short = c.name.length > 48 ? `${c.name.slice(0, 46)}…` : c.name
-    changes.push(before === null ? `Set ${short} to ${lvl}` : `Changed ${short} ${before} → ${lvl}`)
+    const entry = { kind: 'LEVEL_CHANGED' as const, criterionId: cid, criterionName: c.name, from: before, to: lvl }
+    log(entry)
+    levelChanges.push({ at, ...entry })
   }
   for (const [cid, text] of Object.entries(patch.comments ?? {})) {
     if ((e.comments[cid] ?? '') === text) continue
     if (text) e.comments[cid] = text
     else delete e.comments[cid]
-    if (!changes.length) changes.push('Edited a comment')
+    const c = view.rubric.criteria.find((x) => x.id === cid)
+    log({ kind: 'COMMENT_CHANGED', criterionId: cid, criterionName: c?.name ?? null })
   }
   if (patch.overallComment !== undefined && patch.overallComment !== e.overallComment) {
     e.overallComment = patch.overallComment
-    if (!changes.length) changes.push('Edited the overall comment')
+    log({ kind: 'OVERALL_COMMENT_CHANGED' })
   }
-  e.updatedAt = stamp()
-  if (changes.length) {
-    const last = e.history[e.history.length - 1]
-    // Coalesce rapid comment edits into one audit line.
-    if (last && changes[0]!.startsWith('Edited') && last.text === changes[0]) last.at = e.updatedAt
-    else for (const c of changes) e.history.push({ at: e.updatedAt, text: c })
-    const levelChange = changes.find((c) => c.startsWith('Set') || c.startsWith('Changed'))
-    if (levelChange) {
-      const head = state.activity[0]
-      const text = `${levelChange.replace(/^Set/, 'set').replace(/^Changed/, 'changed')} in a Team ${view.team.name} ${view.assessment.name.toLowerCase()} draft.`
-      if (head && head.kind === 'edit' && head.who === `${me.firstName} ${me.lastName}` && head.text.includes(`Team ${view.team.name} ${view.assessment.name.toLowerCase()}`)) {
-        head.text = text
-        head.at = stamp()
-      } else activity(state, 'edit', `${me.firstName} ${me.lastName}`, text)
-    }
+  e.updatedAt = at
+  const lc = levelChanges[levelChanges.length - 1]
+  if (lc) {
+    const who = `${me.firstName} ${me.lastName}`
+    const where = `Team ${view.team.name} ${view.assessment.name.toLowerCase()} draft`
+    const text = `${auditText(lc).replace(/^S/, 's').replace(/^C/, 'c')} in the ${where}.`
+    const head = state.activity[0]
+    // Coalesce a run of picks into one feed line.
+    if (head && head.kind === 'edit' && head.who === who && head.text.includes(where)) {
+      head.text = text
+      head.at = at
+    } else activity(state, 'edit', who, text)
   }
   return e
 }
@@ -545,15 +554,15 @@ export function saveDraft(state: DemoState, userId: string, teamId: string, key:
 export function submitEvaluation(state: DemoState, userId: string, teamId: string, key: AssessmentKey): Evaluation {
   const view = gradingView(state, userId, teamId, key)
   const e = view.evaluation
-  if (!e) throw new DemoError(400, 'Score every criterion before submitting.')
+  if (!e) throw new DemoError(422, 'Score every criterion before submitting.', 'criteria-unscored')
   if (e.status === 'SUBMITTED') throw new DemoError(409, 'Already submitted.')
   const missing = view.rubric.criteria.filter((c) => e.levels[c.id] === null || e.levels[c.id] === undefined)
-  if (missing.length) throw new DemoError(400, `Score ${missing.length} more criteria to submit.`)
+  if (missing.length) throw new DemoError(422, `Score ${missing.length} more criteria to submit.`, 'criteria-unscored')
   const wasFinalBefore = teamFinal(state, teamId)
   e.status = 'SUBMITTED'
   e.submittedAt = stamp()
   e.updatedAt = e.submittedAt
-  e.history.push({ at: e.submittedAt, text: 'Submitted and locked' })
+  e.history.push({ at: e.submittedAt, kind: 'SUBMITTED', criterionId: null, criterionName: null, from: null, to: null })
   const me = reviewer(state, userId)
   const info = teamAssessment(state, teamId, key)
   activity(
@@ -579,7 +588,7 @@ export function submitEvaluation(state: DemoState, userId: string, teamId: strin
 export function releaseAssessment(state: DemoState, key: AssessmentKey): { released: Team[] } {
   const a = assessment(state, key)
   const pending = state.teams.filter((t) => teamAssessment(state, t.id, key).grade !== null && !releaseOf(state, t.id, key))
-  if (!pending.length) throw new DemoError(409, `Nothing to release for the ${a.name}.`)
+  if (!pending.length) throw new DemoError(409, `Nothing to release for the ${a.name}.`, 'nothing-to-release')
   for (const t of pending) {
     state.releases.push({ assessment: key, teamId: t.id, at: stamp() })
     const studentIds = state.students.filter((s) => s.teamId === t.id).map((s) => s.id)
@@ -600,7 +609,7 @@ export function markRead(state: DemoState, userId: string, id: string | 'all') {
 
 export function saveRubric(state: DemoState, key: AssessmentKey, criteria: Criterion[]) {
   if (!criteria.length) throw new DemoError(400, 'A rubric needs at least one criterion.')
-  if (weightsTotal(criteria.map((c) => c.weight)) !== 100) throw new DemoError(400, 'Weights must total 100%.')
+  if (weightsTotal(criteria.map((c) => c.weight)) !== 100) throw new DemoError(422, `Weights must add up to 100%. They add up to ${weightsTotal(criteria.map((c) => c.weight))}%.`, 'weights-not-100')
   if (criteria.some((c) => !c.name.trim())) throw new DemoError(400, 'Every criterion needs a name.')
   const r = rubric(state, key)
   r.criteria = criteria.map((c) => ({ ...c, id: c.id || nextId(state, 'c') }))
@@ -635,7 +644,7 @@ export function moveDefense(state: DemoState, teamId: string, start: string, roo
 export function createTeam(state: DemoState, name: string, projectTitle: string): Team {
   if (!name.trim()) throw new DemoError(400, 'Give the team a name.')
   if (state.teams.some((t) => t.name.toLowerCase() === name.trim().toLowerCase())) {
-    throw new DemoError(409, `There is already a Team ${name.trim()}.`)
+    throw new DemoError(409, `There is already a Team ${name.trim()}.`, 'team-name-taken')
   }
   const t: Team = { id: nextId(state, 't'), name: name.trim(), projectTitle: projectTitle.trim(), description: '', members: [], defense: null }
   state.teams.push(t)
@@ -654,7 +663,7 @@ export function updateTeam(state: DemoState, teamId: string, patch: { name?: str
 
 export function deleteTeam(state: DemoState, teamId: string) {
   if (state.evaluations.some((e) => e.teamId === teamId)) {
-    throw new DemoError(409, 'This team already has evaluations, so it can’t be deleted.')
+    throw new DemoError(409, 'This team already has evaluations, so it can’t be deleted.', 'team-has-submissions')
   }
   state.teams = state.teams.filter((t) => t.id !== teamId)
   state.students = state.students.filter((s) => s.teamId !== teamId)
@@ -668,7 +677,7 @@ export function addStudent(state: DemoState, teamId: string, firstName: string, 
 }
 
 export function removeStudent(state: DemoState, studentId: string) {
-  if (['s-nour'].includes(studentId)) throw new DemoError(409, 'Nour is the student persona of this demo, so she stays on Team Alpha.')
+  if (['s-nour'].includes(studentId)) throw new DemoError(409, 'Nour is the student persona of this demo, so she stays on Team Alpha.', 'student-is-demo-persona')
   state.students = state.students.filter((s) => s.id !== studentId)
 }
 
@@ -676,29 +685,27 @@ export function assignReviewer(state: DemoState, teamId: string, reviewerId: str
   const t = team(state, teamId)
   reviewer(state, reviewerId)
   if (t.members.some((m) => m.reviewerId === reviewerId)) throw new DemoError(409, 'Already on this team.')
-  if (t.members.length >= 5) throw new DemoError(409, 'A team can have at most 5 reviewers.')
+  if (t.members.length >= 5) throw new DemoError(422, 'A team can have at most 5 reviewers.', 'composition-invalid')
   t.members.push({ reviewerId, role })
-  const r = reviewer(state, reviewerId)
   notify(state, [reviewerId], 'team', `You were assigned to Team ${t.name} as ${role === 'JURY' ? 'a jury member' : 'the advisor'}.`, '/my-teams')
-  void r
 }
 
 export function unassignReviewer(state: DemoState, teamId: string, reviewerId: string) {
   const t = team(state, teamId)
   if (state.evaluations.some((e) => e.teamId === teamId && e.reviewerId === reviewerId && e.status === 'SUBMITTED')) {
-    throw new DemoError(409, 'This reviewer has submitted evaluations for the team, so they stay on it.')
+    throw new DemoError(409, 'This reviewer has submitted evaluations for the team, so they stay on it.', 'reviewer-has-submissions')
   }
   const after = t.members.filter((m) => m.reviewerId !== reviewerId)
   const check = composition({ ...t, members: after })
   if (check.jury < 1 || check.advisors < 1) {
-    throw new DemoError(409, `Removing them would leave the team with ${check.jury < 1 ? 'no jury member' : 'no advisor'}. Assign a replacement first.`)
+    throw new DemoError(422, `Removing them would leave the team with ${check.jury < 1 ? 'no jury member' : 'no advisor'}. Assign a replacement first.`, 'composition-invalid')
   }
   t.members = after
   state.evaluations = state.evaluations.filter((e) => !(e.teamId === teamId && e.reviewerId === reviewerId))
 }
 
-export function levelName(l: Level): string {
-  return LEVEL_NAMES[l]
-}
+export { auditText }
 
-export { fmtShort }
+export function nextNotificationId(state: DemoState): string {
+  return nextId(state, 'n')
+}

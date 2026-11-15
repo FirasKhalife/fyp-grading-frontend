@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import { oidcEnabled } from '@/auth/oidc'
-import { AVATAR_CLASS, PERSONAS, type PersonaId } from '@/auth/personas'
-import * as store from '@/mocks/store'
+import { AVATAR_CLASS, canVisit, PERSONAS, type PersonaId } from '@/auth/personas'
+import { consumeOvernightReset } from '@/auth/demo-session'
 import { cn } from '@/lib/cn'
 import { Icon } from '@/components/assay/Icon'
 import { useTitle } from '@/components/assay/Page'
@@ -23,7 +23,7 @@ export function LandingPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, toggle } = useTheme()
-  const [overnight] = useState(() => store.consumeOvernightReset())
+  const [overnight] = useState(() => consumeOvernightReset())
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState<PersonaId | null>(null)
   const from = (location.state as { from?: string } | null)?.from
@@ -33,7 +33,7 @@ export function LandingPage() {
     setError(false)
     try {
       const p = await enterAs(id)
-      if (!oidcEnabled) navigate(from && from !== '/' ? from : p.home)
+      if (!oidcEnabled) navigate(from && canVisit(p, from) ? from : p.home)
     } catch {
       setError(true)
     } finally {

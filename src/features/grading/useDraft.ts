@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSaveDraft } from '@/api/queries'
+import type { DraftState } from '@/api/repository'
 import type { AssessmentKey, Evaluation, Level } from '@/domain/types'
-import type { DraftPatch } from '@/mocks/logic'
 
-export interface DraftState {
-  levels: Record<string, Level | null>
-  comments: Record<string, string>
-  overall: string
-}
+export type { DraftState }
 
 function fromEvaluation(e: Evaluation | null, criterionIds: string[]): DraftState {
   return {
@@ -18,8 +14,9 @@ function fromEvaluation(e: Evaluation | null, criterionIds: string[]): DraftStat
 }
 
 /**
- * Local draft state with autosave: level picks save at once, typing saves after a short pause.
- * Pending changes are merged into one patch and flushed on unmount, so nothing typed is lost.
+ * Local form state with autosave. The contract's draft save takes the full form, so each save sends
+ * everything: level picks save at once, typing saves after a short pause, and a pending save is
+ * flushed on unmount so nothing typed is lost.
  */
 export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluation | null, criterionIds: string[]) {
   const [draft, setDraft] = useState<DraftState>(() => fromEvaluation(evaluation, criterionIds))
@@ -27,37 +24,37 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
   const save = useSaveDraft(teamId, a)
-  const pending = useRef<DraftPatch>({})
+  const latest = useRef(draft)
+  const dirty = useRef(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveRef = useRef(save.mutateAsync)
-  saveRef.current = save.mutateAsync
+  useEffect(() => {
+    saveRef.current = save.mutateAsync
+  })
 
   const flush = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current)
     timer.current = null
-    const patch = pending.current
-    if (!patch.levels && !patch.comments && patch.overallComment === undefined) return
-    pending.current = {}
+    if (!dirty.current) return
+    dirty.current = false
     setSaving(true)
     try {
-      const e = await saveRef.current(patch)
+      const e = await saveRef.current(latest.current)
       setSavedAt(e.updatedAt)
       setFailed(false)
     } catch {
-      // Put the changes back so the next save retries them.
-      pending.current = {
-        levels: { ...patch.levels, ...pending.current.levels },
-        comments: { ...patch.comments, ...pending.current.comments },
-        overallComment: pending.current.overallComment ?? patch.overallComment,
-      }
+      dirty.current = true
       setFailed(true)
     } finally {
       setSaving(false)
     }
   }, [])
 
-  const schedule = useCallback(
-    (delay: number) => {
+  const update = useCallback(
+    (fn: (d: DraftState) => DraftState, delay: number) => {
+      latest.current = fn(latest.current)
+      dirty.current = true
+      setDraft(latest.current)
       if (timer.current) clearTimeout(timer.current)
       timer.current = setTimeout(() => void flush(), delay)
     },
@@ -66,30 +63,17 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
 
   useEffect(() => () => void flush(), [flush])
 
-  const setLevel = useCallback(
-    (id: string, l: Level) => {
-      setDraft((d) => ({ ...d, levels: { ...d.levels, [id]: l } }))
-      pending.current = { ...pending.current, levels: { ...pending.current.levels, [id]: l } }
-      schedule(0)
-    },
-    [schedule],
-  )
-  const setComment = useCallback(
-    (id: string, text: string) => {
-      setDraft((d) => ({ ...d, comments: { ...d.comments, [id]: text } }))
-      pending.current = { ...pending.current, comments: { ...pending.current.comments, [id]: text } }
-      schedule(700)
-    },
-    [schedule],
-  )
-  const setOverall = useCallback(
-    (text: string) => {
-      setDraft((d) => ({ ...d, overall: text }))
-      pending.current = { ...pending.current, overallComment: text }
-      schedule(700)
-    },
-    [schedule],
-  )
+  const setLevel = useCallback((id: string, l: Level) => update((d) => ({ ...d, levels: { ...d.levels, [id]: l } }), 0), [update])
+  const setComment = useCallback((id: string, text: string) => update((d) => ({ ...d, comments: { ...d.comments, [id]: text } }), 700), [update])
+  const setOverall = useCallback((text: string) => update((d) => ({ ...d, overall: text }), 700), [update])
 
-  return { draft, setLevel, setComment, setOverall, flush, savedAt, saving, failed }
+  /** Cancel a pending autosave and hand back the full state (submit sends it in the same call). */
+  const takeForSubmit = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+    dirty.current = false
+    return latest.current
+  }, [])
+
+  return { draft, setLevel, setComment, setOverall, flush, takeForSubmit, savedAt, saving, failed }
 }

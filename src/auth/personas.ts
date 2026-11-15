@@ -104,3 +104,17 @@ export const AVATAR_CLASS: Record<PersonaId, string> = {
   karim: 'bg-l2 text-l2i',
   nour: 'bg-l1 text-l1i',
 }
+
+/** Whether a deep link is worth returning to after sign-in for this persona. */
+export function canVisit(p: Persona, path: string): boolean {
+  if (path === '/' || path.startsWith('/roles')) return false
+  if (path.startsWith('/rubrics') || path.startsWith('/schedule')) return !path.endsWith('/edit') || p.role === 'COORDINATOR'
+  switch (p.role) {
+    case 'COORDINATOR':
+      return !path.startsWith('/student')
+    case 'STUDENT':
+      return path.startsWith('/student')
+    default:
+      return path.startsWith('/my-teams') || path.startsWith('/grade')
+  }
+}

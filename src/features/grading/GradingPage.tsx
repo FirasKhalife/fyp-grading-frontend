@@ -63,7 +63,7 @@ function GradingForm({ view }: { view: GradingView }) {
   const { team, assessment: a, rubric, evaluation, peers } = view
   const criteria = rubric.criteria
   const ids = useMemo(() => criteria.map((c) => c.id), [criteria])
-  const { draft, setLevel, setComment, setOverall, flush, savedAt, saving, failed } = useDraft(team.id, a.key, evaluation, ids)
+  const { draft, setLevel, setComment, setOverall, takeForSubmit, savedAt, saving, failed } = useDraft(team.id, a.key, evaluation, ids)
   const submit = useSubmit(team.id, a.key)
   const [openComments, setOpenComments] = useState<string[]>([])
   const [confirming, setConfirming] = useState(false)
@@ -110,9 +110,9 @@ function GradingForm({ view }: { view: GradingView }) {
   }
 
   async function onConfirm() {
-    await flush()
     try {
-      await submit.mutateAsync()
+      // The submit carries the final form state, so the last edits and the lock are one call.
+      await submit.mutateAsync(takeForSubmit())
       setConfirming(false)
       toast.success(`Submitted. Team ${team.name}'s ${a.name.toLowerCase()} is locked with your score of ${formatScore(score)}.`)
       window.scrollTo({ top: 0 })

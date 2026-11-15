@@ -50,7 +50,7 @@ export interface DemoState {
   seq: number
 }
 
-export const STATE_VERSION = 3
+export const STATE_VERSION = 4
 
 const ABBR: Record<AssessmentKey, string> = {
   PROPOSAL_PRESENTATION: 'pp',
@@ -128,7 +128,10 @@ export function createSeedState(): DemoState {
           overallComment: e.overall ?? '',
           updatedAt: stamp,
           submittedAt: e.status === 'SUBMITTED' ? stamp : null,
-          history: (e.history ?? []).map((h) => ({ at: past(h.at[0], h.at[1]), text: h.text })),
+          history: (e.history ?? []).map((h) => {
+            const c = h.criterion !== undefined ? rubric.criteria[h.criterion] : undefined
+            return { at: past(h.at[0], h.at[1]), kind: h.kind, criterionId: c?.id ?? null, criterionName: c?.name ?? null, from: h.from ?? null, to: h.to ?? null }
+          }),
         })
       })
     }

@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Viewer } from '@/api/repository'
-import * as store from '@/mocks/store'
-import { currentUser, oidcEnabled, signInAs, signOut } from './oidc'
+import { ApiError, setTokenProvider, setUnauthorizedHandler } from '@/api/client'
+import { repository, type Viewer } from '@/api/repository'
+import { markOvernightReset } from './demo-session'
+import { accessToken, currentUser, oidcEnabled, signInPersona, signOut } from './oidc'
 import { personaById, personaByUsername, type Persona, type PersonaId } from './personas'
 
 const PERSONA_KEY = 'assay-persona'
@@ -9,7 +10,7 @@ const PERSONA_KEY = 'assay-persona'
 export interface AuthState {
   persona: Persona | null
   viewer: Viewer | null
-  /** True while the first copy of the demo data is being created. */
+  /** True while the visitor's private copy of the demo data is being created. */
   creating: boolean
   ready: boolean
   enterAs: (id: PersonaId) => Promise<Persona>
@@ -17,6 +18,10 @@ export interface AuthState {
 }
 
 const AuthContext = createContext<AuthState | null>(null)
+
+/** The persona the API client signs requests as (mock tokens); kept outside React so it is set before any child query runs. */
+let signedInAs: Persona | null = null
+setTokenProvider(() => (oidcEnabled ? accessToken() : signedInAs ? `mock.${signedInAs.username}` : null))
 
 function viewerOf(p: Persona): Viewer {
   return { userId: p.userId, kind: p.role === 'COORDINATOR' ? 'admin' : p.role === 'STUDENT' ? 'student' : 'reviewer' }
@@ -29,62 +34,84 @@ function readPersona(): Persona | null {
     return null
   }
 }
+function writePersona(p: Persona | null) {
+  try {
+    if (p) localStorage.setItem(PERSONA_KEY, p.id)
+    else localStorage.removeItem(PERSONA_KEY)
+  } catch {
+    /* private mode */
+  }
+}
 
+/**
+ * Who is signed in. Offline (MSW) the token is a mock token naming the persona; with Keycloak it is
+ * the access token of the persona's account. Either way the persona card signs in and then makes
+ * sure the visitor's private demo copy exists (PUT /api/demo/session).
+ */
 export function AuthProvider({ children, initialPersona }: { children: ReactNode; initialPersona?: PersonaId }) {
-  const [persona, setPersona] = useState<Persona | null>(() =>
-    initialPersona ? personaById(initialPersona) : oidcEnabled ? null : readPersona(),
-  )
-  const [ready, setReady] = useState(!oidcEnabled || Boolean(initialPersona))
+  const [persona, setPersona] = useState<Persona | null>(() => (initialPersona ? personaById(initialPersona) : oidcEnabled ? null : readPersona()))
+  const [ready, setReady] = useState(false)
   const [creating, setCreating] = useState(false)
 
+  signedInAs = persona
+
   useEffect(() => {
-    if (!oidcEnabled || initialPersona) return
-    let live = true
-    void currentUser().then((u) => {
-      if (!live) return
-      setPersona(personaByUsername(u?.profile.preferred_username))
-      setReady(true)
+    setUnauthorizedHandler(() => {
+      writePersona(null)
+      setPersona(null)
     })
+    return () => setUnauthorizedHandler(null)
+  }, [])
+
+  // On start: restore the session, and check the demo copy still exists (it's purged at midnight).
+  useEffect(() => {
+    let live = true
+    void (async () => {
+      let p = persona
+      if (oidcEnabled && !initialPersona) {
+        const u = await currentUser()
+        p = personaByUsername(u?.profile.preferred_username)
+        if (live) setPersona(p)
+      }
+      if (p && !initialPersona) {
+        signedInAs = p
+        try {
+          await repository.demoSession()
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 404) {
+            markOvernightReset()
+            writePersona(null)
+            if (live) setPersona(null)
+          }
+        }
+      }
+      if (live) setReady(true)
+    })()
     return () => {
       live = false
     }
-  }, [initialPersona])
-
-  // In mock mode a missing copy means the nightly reset ran: drop the persona so the app asks again.
-  useEffect(() => {
-    if (!oidcEnabled && persona && !initialPersona && !store.hasCopy() && store.peekOvernightReset()) {
-      setPersona(null)
-    }
-  }, [persona, initialPersona])
+    // Run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const enterAs = useCallback(async (id: PersonaId) => {
     const p = personaById(id)
     if (!p) throw new Error('Unknown persona')
-    if (!store.hasCopy()) {
-      setCreating(true)
-      await new Promise((r) => setTimeout(r, import.meta.env.MODE === 'test' ? 0 : 900))
-      store.createCopy()
+    if (oidcEnabled) await signInPersona(p.username)
+    signedInAs = p
+    setCreating(true)
+    try {
+      await repository.ensureDemoSession()
+    } finally {
       setCreating(false)
     }
-    if (oidcEnabled) {
-      await signInAs(p.username, p.home)
-      return p
-    }
-    try {
-      localStorage.setItem(PERSONA_KEY, p.id)
-    } catch {
-      /* private mode */
-    }
+    writePersona(p)
     setPersona(p)
     return p
   }, [])
 
   const doSignOut = useCallback(async () => {
-    try {
-      localStorage.removeItem(PERSONA_KEY)
-    } catch {
-      /* ignore */
-    }
+    writePersona(null)
     if (oidcEnabled) await signOut()
     setPersona(null)
   }, [])

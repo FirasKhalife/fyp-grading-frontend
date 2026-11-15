@@ -17,6 +17,7 @@ import { ErrorState } from '@/components/assay/States'
 import { StatusChip } from '@/components/assay/StatusChip'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
+import { auditText } from '@/domain/audit'
 import { NotFoundPage } from '../utility/UtilityPages'
 
 const field =
@@ -286,7 +287,7 @@ function AssessmentRow({ a, i, teamName }: { a: Row; i: number; teamName: string
                 {h.entries.map((e, k) => (
                   <li key={k} className="flex gap-3">
                     <span className="mono w-28 flex-none text-muted">{fmtStamp(e.at)}</span>
-                    <span>{e.text.replace(/(\d) → (\d)/, '$1 → $2')}</span>
+                    <span>{auditText(e)}</span>
                   </li>
                 ))}
               </ul>
@@ -432,7 +433,7 @@ function StudentsCard({ v }: { v: TeamDetailView }) {
               type="button"
               aria-label={`Remove ${s.firstName} ${s.lastName} from Team ${v.team.name}`}
               onClick={() =>
-                ops.mutateAsync({ op: 'removeStudent', studentId: s.id }).then(
+                ops.mutateAsync({ op: 'removeStudent', teamId: v.team.id, studentId: s.id }).then(
                   () => toast.success(`${s.firstName} ${s.lastName} removed.`),
                   (x: unknown) => toast.error(x instanceof Error ? x.message : 'Could not remove.'),
                 )

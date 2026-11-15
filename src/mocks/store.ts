@@ -1,4 +1,5 @@
-import { now } from '@/lib/demo-clock'
+import { browserDemoSessionId, markOvernightReset } from '@/auth/demo-session'
+import { realNow } from '@/lib/demo-clock'
 import { createSeedState, STATE_VERSION, type DemoState } from './db'
 
 /**
@@ -7,12 +8,12 @@ import { createSeedState, STATE_VERSION, type DemoState } from './db'
  * midnight in Paris (the nightly reset).
  */
 
-const SESSION_KEY = 'assay-demo-session'
 const COPY_PREFIX = 'assay-demo:'
-const RESET_FLAG = 'assay-demo-reset-overnight'
 
 let memory: DemoState | null = null
 let memoryId: string | null = null
+/** The session id of the request being served (the X-Demo-Session header), when it differs from this browser's. */
+let activeId: string | null = null
 const listeners = new Set<() => void>()
 
 function safeGet(key: string): string | null {
@@ -37,19 +38,9 @@ function safeRemove(key: string) {
   }
 }
 
-function randomId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
-  return Math.random().toString(36).slice(2) + Date.now().toString(36)
-}
-
-/** The random, non-personal id this browser uses for its demo copy. */
+/** The demo session the mock server is serving: the request's X-Demo-Session, else this browser's. */
 export function demoSessionId(): string {
-  let id = safeGet(SESSION_KEY)
-  if (!id) {
-    id = randomId()
-    safeSet(SESSION_KEY, id)
-  }
-  return id
+  return activeId ?? browserDemoSessionId()
 }
 
 /** Start of today in Europe/Paris, as a Date. */
@@ -74,9 +65,9 @@ function load(): DemoState | null {
   try {
     const s = JSON.parse(raw) as DemoState
     if (s.version !== STATE_VERSION) return null
-    if (new Date(s.createdAt) < lastParisMidnight(now())) {
+    if (new Date(s.createdAt) < lastParisMidnight(realNow())) {
       safeRemove(COPY_PREFIX + id)
-      safeSet(RESET_FLAG, '1')
+      markOvernightReset()
       return null
     }
     memory = s
@@ -94,20 +85,15 @@ function persist(s: DemoState) {
   for (const l of listeners) l()
 }
 
+/** Serve requests for another demo session id (the mock server honours X-Demo-Session). */
+export function selectSession(id: string | null) {
+  if (id === activeId) return
+  activeId = id
+  memory = null
+}
+
 export function hasCopy(): boolean {
   return load() !== null
-}
-
-/** True once after the nightly reset removed this browser's copy. */
-export function consumeOvernightReset(): boolean {
-  const v = safeGet(RESET_FLAG) === '1'
-  if (v) safeRemove(RESET_FLAG)
-  return v
-}
-
-export function peekOvernightReset(): boolean {
-  load()
-  return safeGet(RESET_FLAG) === '1'
 }
 
 export function createCopy(): DemoState {

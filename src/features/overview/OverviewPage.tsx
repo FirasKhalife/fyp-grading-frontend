@@ -17,7 +17,8 @@ import { Main, PageTitle, useTitle } from '@/components/assay/Page'
 import { EmptyState, ErrorState } from '@/components/assay/States'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
-import { cellModel, GradeGrid } from './GradeGrid'
+import { repository } from '@/api/repository'
+import { GradeGrid } from './GradeGrid'
 
 type Filter = 'all' | 'attention' | 'final'
 type Sort = 'name' | 'final' | 'pending'
@@ -57,7 +58,7 @@ function Header({ data }: { data?: OverviewView }) {
       </div>
       {data && data.rows.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" onClick={() => exportCsv(data)}>
+          <Button variant="ghost" onClick={() => void exportCsv()}>
             <Icon name="download" />
             Export CSV
           </Button>
@@ -323,31 +324,20 @@ function ActivityFeed({ items }: { items: OverviewView['activity'] }) {
   )
 }
 
-function exportCsv(data: OverviewView) {
-  const cols = data.rows[0]?.cells.map((c) => c.assessment) ?? []
-  const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
-  const head = ['Team', 'Project', ...cols.map((a) => `${a.name} (${a.weight}%)`), 'Final grade']
-  const lines = data.rows.map((r) =>
-    [
-      `Team ${r.team.name}`,
-      r.team.projectTitle,
-      ...r.cells.map((c) => {
-        const m = cellModel(r, c)
-        return m.kind === 'grade' ? m.main : `${m.main} (${m.note})`
-      }),
-      r.final !== null ? formatScore(r.final) : r.needs,
-    ]
-      .map(esc)
-      .join(','),
-  )
-  const blob = new Blob([[head.map(esc).join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `assay-grades-${isoDay(0)}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-  toast.success('CSV downloaded.')
+/** CSV from the server (`GET /api/overview/export`), saved as a file. */
+async function exportCsv() {
+  try {
+    const csv = await repository.exportCsv()
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `assay-results-${isoDay(0)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('CSV downloaded.')
+  } catch {
+    toast.error("The export didn't work. Try again in a moment.")
+  }
 }
 
 function OverviewSkeleton() {

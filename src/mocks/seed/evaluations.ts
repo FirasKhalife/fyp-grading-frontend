@@ -21,7 +21,8 @@ export interface EvalSpec {
   /** Comments by criterion index (0-based). */
   comments?: Record<number, string>
   overall?: string
-  history?: { at: [number, string]; text: string }[]
+  /** Audit trail; criterion is a 0-based index. */
+  history?: { at: [number, string]; kind: 'CREATED' | 'LEVEL_CHANGED' | 'COMMENT_CHANGED'; criterion?: number; from?: Level | null; to?: Level | null }[]
 }
 
 type TeamSpec = Partial<Record<AssessmentKey, EvalSpec[]>>
@@ -135,9 +136,10 @@ export const EVALUATIONS: Record<string, TeamSpec> = {
           11: 'Chapter 4 repeats chapter 2; figures lack captions.',
         },
         history: [
-          { at: [-2, '16:30'], text: 'Started the draft · 4 of 13 scored' },
-          { at: [0, '10:12'], text: 'Set Standards (2.3) to 2 and added a comment' },
-          { at: [0, '10:15'], text: 'Changed Problem formulation 2 → 3' },
+          { at: [-2, '16:30'], kind: 'CREATED' },
+          { at: [0, '10:12'], kind: 'LEVEL_CHANGED', criterion: 5, from: null, to: 2 },
+          { at: [0, '10:12'], kind: 'COMMENT_CHANGED', criterion: 5 },
+          { at: [0, '10:15'], kind: 'LEVEL_CHANGED', criterion: 4, from: 2, to: 3 },
         ],
       },
     ],
@@ -174,7 +176,7 @@ export const EVALUATIONS: Record<string, TeamSpec> = {
         status: 'DRAFT',
         levels: [3, 2, 3, null, null],
         at: [0, '11:02'],
-        history: [{ at: [0, '11:02'], text: 'Started the draft · 3 of 5 scored' }],
+        history: [{ at: [0, '11:02'], kind: 'CREATED' }],
       },
     ],
   },
