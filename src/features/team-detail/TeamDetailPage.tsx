@@ -3,14 +3,14 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/repository'
-import { useTeamDetail, useTeamOps, useTeams } from '@/api/queries'
+import { useTeamDetail, useTeamHistory, useTeamOps, useTeams } from '@/api/queries'
 import type { TeamDetailView } from '@/api/views'
 import { bandOf, LEVEL_NAMES } from '@/domain/levels'
-import type { ReviewerRole } from '@/domain/types'
+import type { ActivityKind, ReviewerRole } from '@/domain/types'
 import { cn, initials } from '@/lib/cn'
 import { addMinutes, daysFromToday, fmtDayYear, fmtShort, fmtStamp, fmtTime } from '@/lib/demo-clock'
-import { formatScore } from '@/lib/scoring'
-import { Icon } from '@/components/assay/Icon'
+import { DISAGREEMENT_THRESHOLD, formatScore } from '@/lib/scoring'
+import { Icon, type IconName } from '@/components/assay/Icon'
 import { FILL, LevelMark, ScoreChip } from '@/components/assay/LevelMark'
 import { Breadcrumb, Main, PageTitle, useTitle } from '@/components/assay/Page'
 import { ErrorState } from '@/components/assay/States'
@@ -131,6 +131,7 @@ function TeamDetail({ v }: { v: TeamDetailView }) {
               )
             })}
           </Card>
+          <TeamHistory teamId={team.id} teamName={team.name} />
         </div>
 
         <section aria-labelledby="as-h" className="flex min-w-0 flex-[999_1_640px] flex-col gap-3">
@@ -317,12 +318,17 @@ function Spread({ a }: { a: Row }) {
   const min = Math.min(...scores)
   const max = Math.max(...scores)
   const avg = scores.reduce((x, y) => x + y, 0) / scores.length
-  const wide = (a.spread ?? 0) >= 20
+  const wide = a.disagreement
   return (
-    <div className="flex flex-col gap-1.5 rounded-[12px] border border-line bg-paper p-3.5">
-      <p className="m-0 text-[14px] font-semibold">
-        Reviewer spread: <span className="mono">{formatScore(a.spread ?? 0)}</span> points{' '}
-        <span className={wide ? 'text-amber' : 'text-muted'}>· {wide ? 'wide' : a.spread! >= 10 ? 'moderate' : 'close'}</span>
+    <div className={cn('flex flex-col gap-1.5 rounded-[12px] border bg-paper p-3.5', wide ? 'border-amber-line' : 'border-line')}>
+      <p className="m-0 flex items-center gap-1.5 text-[14px] font-semibold">
+        {wide && <Icon name="swap" size={16} className="flex-none text-amber" />}
+        <span>
+          Reviewer spread: <span className="mono">{formatScore(a.spread ?? 0)}</span> points{' '}
+          <span className={wide ? 'text-amber' : 'text-muted'}>
+            · {wide ? `reviewers disagree (more than ${DISAGREEMENT_THRESHOLD} points apart)` : `within ${DISAGREEMENT_THRESHOLD} points`}
+          </span>
+        </span>
       </p>
       <div
         role="img"
@@ -353,6 +359,61 @@ function Spread({ a }: { a: Row }) {
         Informational only. The team grade is always the plain average ({formatScore(avg)}, the dark line).
       </p>
     </div>
+  )
+}
+
+const HISTORY_ICON: Record<ActivityKind, IconName> = { submit: 'lock', edit: 'pencil', schedule: 'calendar', final: 'check', release: 'eye', assignment: 'people' }
+const HISTORY_FIRST = 6
+
+/** The team's history (contract `GET /api/activity?teamId=`): drafts, submissions, finals, releases, schedule and reviewer changes. */
+function TeamHistory({ teamId, teamName }: { teamId: string; teamName: string }) {
+  const q = useTeamHistory(teamId)
+  const [all, setAll] = useState(false)
+  const items = q.data ?? []
+  const shown = all ? items : items.slice(0, HISTORY_FIRST)
+  return (
+    <Card as="section" aria-labelledby="hi-h" className="flex flex-col gap-2 p-5">
+      <h2 id="hi-h" className="m-0 text-[16px] font-semibold">
+        History {q.isSuccess && <span className="mono font-medium text-muted">{items.length}</span>}
+      </h2>
+      {q.isPending && (
+        <div aria-busy="true" aria-label="Loading the history" className="flex flex-col gap-3 py-1">
+          <Skeleton className="h-4 w-[90%]" />
+          <Skeleton className="h-4 w-[75%]" />
+          <Skeleton className="h-4 w-[82%]" />
+        </div>
+      )}
+      {q.isError && (
+        <ErrorState compact title="We couldn't load the history." actions={<Button size="sm" variant="ghost" onClick={() => void q.refetch()}>Try again</Button>}>
+          The rest of the page is up to date.
+        </ErrorState>
+      )}
+      {q.isSuccess && !items.length && <p className="m-0 text-[14px] text-ink2">Nothing has happened on Team {teamName} yet.</p>}
+      {q.isSuccess && items.length > 0 && (
+        <>
+          <ul className="m-0 list-none p-0">
+            {shown.map((e, i) => (
+              <li key={e.id} className={cn('grid grid-cols-[28px_1fr] gap-2.5 py-2.5', i > 0 && 'border-t border-line')}>
+                <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-[8px] bg-raised text-ink2">
+                  <Icon name={HISTORY_ICON[e.kind]} size={14} />
+                </span>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-[14px] leading-5 [overflow-wrap:anywhere]">
+                    <strong className="font-semibold">{e.who}</strong> {e.text}
+                  </span>
+                  <span className="mono text-[12px] text-muted">{fmtStamp(e.at)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {items.length > HISTORY_FIRST && (
+            <Button variant="ghost" size="sm" className="self-start" aria-expanded={all} onClick={() => setAll((x) => !x)}>
+              {all ? 'Show fewer' : `Show all ${items.length}`}
+            </Button>
+          )}
+        </>
+      )}
+    </Card>
   )
 }
 

@@ -1,3 +1,4 @@
+import { gradeDistribution } from '@/lib/scoring'
 import { delay, http, HttpResponse, sse, type JsonBodyType } from 'msw'
 import { ASSESSMENTS } from '@/domain/assessments'
 import type { AssessmentKey, Criterion, Level, NotificationKind, Reviewer, ReviewerRole, Student } from '@/domain/types'
@@ -193,6 +194,8 @@ function activityKind(kind: DemoState['activity'][number]['kind'], text: string)
       return /final grade/i.test(text) ? 'FINAL_GRADE_COMPUTED' : 'GRADE_FINAL'
     case 'release':
       return 'RELEASED'
+    case 'assignment':
+      return 'ASSIGNMENT'
   }
 }
 
@@ -443,6 +446,7 @@ export const handlers = [
             draftCount: i.reviewers.filter((r) => r.state === 'DRAFT').length,
             overdue: i.overdue,
             spread: i.spread === null ? null : Math.round(i.spread * 10) / 10,
+            disagreement: i.disagreement,
             releasedAt: i.release ? parisToUtc(i.release.at) : null,
           } satisfies S<'OverviewCell'>
         })
@@ -471,6 +475,13 @@ export const handlers = [
         },
         assessments: ASSESSMENTS.map((a) => assessmentDto(state, a.key)),
         teams: rows,
+        insights: {
+          disagreementThreshold: v.insights.threshold,
+          finalGradeDistribution: gradeDistribution(rows.flatMap((r) => (r.finalGrade == null ? [] : [r.finalGrade]))),
+          disagreements: rows
+            .flatMap((r) => r.cells.filter((c) => c.disagreement).map((c) => ({ team: r.team, assessment: c.assessment, spread: c.spread!, submittedCount: c.submittedCount })))
+            .sort((a, b) => b.spread - a.spread),
+        },
       } satisfies S<'Overview'>)
     }),
   ),
@@ -702,6 +713,12 @@ export const handlers = [
               href: '/my-teams',
               read: false,
             })
+            const r = s.reviewers.find((x) => x.id === a.reviewerId)!
+            logic.activity(s, 'assignment', 'Assignment', `${r.firstName} ${r.lastName} joined Team ${t.name} as ${a.role === 'JURY' ? 'a jury member' : 'the advisor'}.`, id)
+          }
+          for (const m of removed) {
+            const r = s.reviewers.find((x) => x.id === m.reviewerId)!
+            logic.activity(s, 'assignment', 'Assignment', `${r.firstName} ${r.lastName} left Team ${t.name}.`, id)
           }
         })
         const t = logic.team(store.getState(), id)
@@ -875,7 +892,7 @@ export const handlers = [
           weight: c.weight,
           descriptions: [c.descriptions['1'], c.descriptions['2'], c.descriptions['3'], c.descriptions['4']],
         }))
-        store.mutate((s) => logic.saveRubric(s, key, criteria))
+        store.mutate((s) => logic.saveRubric(s, key, criteria, user.kind === 'reviewer' ? user.r.id : null))
         return json(rubricDto(store.getState(), key))
       },
       { write: true },
@@ -961,10 +978,18 @@ export const handlers = [
   }),
   http.get(
     `${API}/activity`,
-    route(({ user, read }) => {
+    route(({ user, read, request }) => {
       requireAdmin(user)
       const state = read()
-      const items = simulation === 'empty' ? [] : [...state.activity].sort((a, b) => b.at.localeCompare(a.at)).map((a) => activityDto(state, a))
+      const teamId = new URL(request.url).searchParams.get('teamId')
+      if (teamId) logic.team(state, teamId)
+      const items =
+        simulation === 'empty'
+          ? []
+          : [...state.activity]
+              .filter((a) => !teamId || a.teamId === teamId)
+              .sort((a, b) => b.at.localeCompare(a.at))
+              .map((a) => activityDto(state, a))
       return json(page(items))
     }),
   ),

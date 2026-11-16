@@ -123,6 +123,11 @@ export function useTeamDetail(teamId: string) {
   return useQuery({ queryKey: qk.team(teamId), queryFn: () => repo.teamDetail(teamId) })
 }
 
+/** One team's history. Its key sits under the team's, so anything that refreshes the team refreshes it. */
+export function useTeamHistory(teamId: string) {
+  return useQuery({ queryKey: [...qk.team(teamId), 'history'], queryFn: () => repo.teamHistory(teamId) })
+}
+
 export function useRubrics() {
   const { viewer } = useViewer()
   return useQuery({ queryKey: qk.rubrics(viewer.userId), queryFn: () => repo.rubrics(viewer) })

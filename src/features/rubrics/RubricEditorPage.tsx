@@ -7,6 +7,7 @@ import { assessmentFromSlug, assessmentSlug } from '@/domain/assessments'
 import { LEVEL_NAMES } from '@/domain/levels'
 import type { AssessmentKey, Criterion, Level } from '@/domain/types'
 import { cn, joinNames } from '@/lib/cn'
+import { fmtStamp } from '@/lib/demo-clock'
 import { weightsTotal } from '@/lib/scoring'
 import { ApiError } from '@/api/repository'
 import { Icon } from '@/components/assay/Icon'
@@ -82,6 +83,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
   const ok = total === 100 && rows.every((r) => r.name.trim()) && rows.length > 0
   const diff = 100 - total
   const sub = data.submittedCount[assessmentKey]
+  const edited = data.edited[assessmentKey] ?? null
   const blocker = useBlocker(({ currentLocation, nextLocation }) => dirtyRef.current && currentLocation.pathname !== nextLocation.pathname)
 
   function update(next: Row[]) {
@@ -146,6 +148,16 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
         <p className="m-0 text-ink2">
           {a.role === 'JURY' ? 'Jury' : 'Advisor'} assessment · {a.weight}% of the final grade. Reorder with the arrow buttons; weights must total 100% to
           save.
+        </p>
+        <p className="m-0 text-[13px] text-muted">
+          {edited ? (
+            <>
+              Last edited by {edited.by}
+              {edited.at && <>, {fmtStamp(edited.at)}</>}.
+            </>
+          ) : (
+            'Not edited since the session started: this is the seeded rubric.'
+          )}
         </p>
       </div>
       {sub && sub.total > 0 && (

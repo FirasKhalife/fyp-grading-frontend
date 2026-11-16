@@ -91,6 +91,8 @@ export interface TeamAssessmentInfo {
   reviewers: ReviewerScore[]
   overdue: boolean
   spread: number | null
+  /** Reviewers more than the threshold apart (server flag). Informational only; false while scores are hidden. */
+  disagreement: boolean
 }
 
 export interface GridRow {
@@ -130,6 +132,16 @@ export interface OverviewView {
   releases: ReleaseCandidate[]
   releaseCounts: Record<string, number>
   activity: Activity[]
+  insights: Insights
+}
+
+/** P5 insights (contract 1.2.0 `Overview.insights`). Informational only. */
+export interface Insights {
+  threshold: number
+  /** Ten 10-point bands of final grades, lowest first. */
+  distribution: { from: number; to: number; count: number }[]
+  /** Largest spread first. */
+  disagreements: { team: { id: string; name: string }; assessment: Assessment; spread: number; submitted: number }[]
 }
 
 export interface Conflict {
@@ -160,6 +172,8 @@ export interface CompositionCheck {
 export interface RubricsView {
   assessments: Assessment[]
   rubrics: Rubric[]
+  /** Last save per assessment (Paris wall clock) and who made it; null for the seed. */
+  edited: Record<string, { at: string | null; by: string } | null>
   submittedCount: Record<string, { total: number; byTeam: { team: string; count: number }[] }>
 }
 

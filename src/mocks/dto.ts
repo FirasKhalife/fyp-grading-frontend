@@ -111,6 +111,7 @@ export function teamAssessmentDto(state: DemoState, teamId: string, key: Assessm
     submittedCount: i.submitted,
     expectedCount: i.expected,
     spread: score(i.spread),
+    disagreement: revealScores && i.disagreement,
     overdue: i.overdue,
     finalizedAt: i.grade !== null ? utc(i.reviewers.map((x) => x.evaluation?.submittedAt ?? '').sort().pop()) : null,
     releasedAt: utc(i.release?.at),
@@ -145,7 +146,12 @@ export function teamDto(state: DemoState, teamId: string, viewerIsAdmin = true):
     assessments: ASSESSMENTS.map((a) => {
       const dto = teamAssessmentDto(state, teamId, a.key, true)
       // Reviewers see other reviewers' scores only once the team assessment is final.
-      if (!viewerIsAdmin && dto.grade === null) dto.reviewers = dto.reviewers.map((r) => ({ ...r, score: null }))
+      if (!viewerIsAdmin && dto.grade === null) {
+        dto.reviewers = dto.reviewers.map((r) => ({ ...r, score: null }))
+        // The spread would give the hidden scores away, and the flag is false while they're hidden (contract 1.2.0).
+        dto.spread = null
+        dto.disagreement = false
+      }
       return dto
     }),
     finalGrade: score(teamFinal(state, teamId)),
@@ -169,7 +175,8 @@ export function rubricDto(state: DemoState, key: AssessmentKey): S<'Rubric'> {
     criteria: r.criteria.map(criterionDto),
     totalWeight: r.criteria.reduce((s, c) => s + c.weight, 0),
     levels: LEVELS.map((l) => ({ value: l, name: LEVEL_NAMES[l] as S<'Rubric'>['levels'][number]['name'] })),
-    updatedAt: null,
+    updatedAt: utc(r.updatedAt),
+    updatedBy: r.updatedById ? { id: r.updatedById, displayName: person(reviewerById(state, r.updatedById)).displayName } : null,
   }
 }
 

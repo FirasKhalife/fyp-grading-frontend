@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { useOverview, useRelease, useResetDemo } from '@/api/queries'
@@ -19,6 +19,9 @@ import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
 import { repository } from '@/api/repository'
 import { GradeGrid } from './GradeGrid'
+
+// The chart library is large: load the insights after the grid.
+const Insights = lazy(() => import('./Insights').then((m) => ({ default: m.Insights })))
 
 type Filter = 'all' | 'attention' | 'final'
 type Sort = 'name' | 'final' | 'pending'
@@ -221,6 +224,16 @@ function OverviewBody({ data }: { data: OverviewView }) {
           <ActivityFeed items={data.activity} />
         </div>
       </div>
+      <Suspense
+        fallback={
+          <div aria-busy="true" aria-label="Loading the insights" className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] gap-6">
+            <Card className="h-64" />
+            <Card className="h-64" />
+          </div>
+        }
+      >
+        <Insights data={data.insights} />
+      </Suspense>
     </>
   )
 }
@@ -285,7 +298,7 @@ function ReleasePanel({ releases, teamCount }: { releases: ReleaseCandidate[]; t
   )
 }
 
-const FEED_ICON: Record<ActivityKind, IconName> = { submit: 'lock', edit: 'pencil', schedule: 'calendar', final: 'check', release: 'eye' }
+const FEED_ICON: Record<ActivityKind, IconName> = { submit: 'lock', edit: 'pencil', schedule: 'calendar', final: 'check', release: 'eye', assignment: 'people' }
 
 function ActivityFeed({ items }: { items: OverviewView['activity'] }) {
   return (

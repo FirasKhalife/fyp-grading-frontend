@@ -758,7 +758,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** P5 activity feed: what happened in this demo copy, newest first (admin) */
+        /** P5 activity feed, or one team's history with `teamId`: what happened, newest first (admin) */
         get: operations["listActivity"];
         put?: never;
         post?: never;
@@ -1041,6 +1041,8 @@ export interface components {
             expectedCount: number;
             /** @description Max minus min of the submitted scores, when 2+ submitted. Informational only. */
             spread?: components["schemas"]["Score"] | null;
+            /** @description The spread is above the threshold (Overview.insights.disagreementThreshold, 15 points). Informational only. False while scores are hidden from a reviewer. */
+            disagreement: boolean;
             /** @description Past the due date and not final */
             overdue: boolean;
             /** Format: date-time */
@@ -1125,6 +1127,25 @@ export interface components {
             assessments: components["schemas"]["Assessment"][];
             /** @description The grid's rows, by team name */
             teams: components["schemas"]["OverviewRow"][];
+            insights: components["schemas"]["Insights"];
+        };
+        /** @description Plan 3.5. Informational only. */
+        Insights: {
+            /** @example 15 */
+            disagreementThreshold: number;
+            /** @description Ten bands: [0, 10), [10, 20) ... [90, 100] */
+            finalGradeDistribution: {
+                from: number;
+                to: number;
+                count: number;
+            }[];
+            /** @description Assessments whose reviewers are more than the threshold apart, largest spread first */
+            disagreements: {
+                team: components["schemas"]["TeamRef"];
+                assessment: components["schemas"]["AssessmentCode"];
+                spread: components["schemas"]["Score"];
+                submittedCount: number;
+            }[];
         };
         OverviewRow: {
             team: components["schemas"]["TeamRef"];
@@ -1146,6 +1167,8 @@ export interface components {
             draftCount: number;
             overdue: boolean;
             spread?: components["schemas"]["Score"] | null;
+            /** @description The reviewers' scores are more than the threshold apart */
+            disagreement: boolean;
             /** Format: date-time */
             releasedAt?: string | null;
         };
@@ -1341,6 +1364,12 @@ export interface components {
             }[];
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Who last saved the rubric (null for the seed) */
+            updatedBy?: {
+                /** Format: uuid */
+                id: string;
+                displayName: string;
+            } | null;
         };
         RubricPut: {
             criteria: {
@@ -2731,6 +2760,8 @@ export interface operations {
     listActivity: {
         parameters: {
             query?: {
+                /** @description Only this team's history (plan 3.4) */
+                teamId?: string;
                 page?: components["parameters"]["Page"];
                 size?: components["parameters"]["Size"];
             };
