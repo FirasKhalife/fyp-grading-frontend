@@ -1,4 +1,4 @@
-import { browserDemoSessionId, markOvernightReset } from '@/auth/demo-session'
+import { browserDemoSessionId } from '@/auth/demo-session'
 import { realNow } from '@/lib/demo-clock'
 import { createSeedState, STATE_VERSION, type DemoState } from './db'
 
@@ -67,7 +67,6 @@ function load(): DemoState | null {
     if (s.version !== STATE_VERSION) return null
     if (new Date(s.createdAt) < lastParisMidnight(realNow())) {
       safeRemove(COPY_PREFIX + id)
-      markOvernightReset()
       return null
     }
     memory = s

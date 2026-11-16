@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn'
 import { daysFromToday, fmtAgo, fmtDay, fmtRelativeDays, fmtShort, fmtTime } from '@/lib/demo-clock'
 import { formatScore, reviewerScore } from '@/lib/scoring'
 import { Icon } from '@/components/assay/Icon'
+import { LimitHint } from '@/components/assay/LimitHint'
 import { FILL, LevelBars } from '@/components/assay/LevelMark'
 import { Breadcrumb, Main, PageTitle, useTitle } from '@/components/assay/Page'
 import { ErrorState } from '@/components/assay/States'
@@ -22,12 +23,15 @@ import { LevelPicker } from './LevelPicker'
 import { useDraft } from './useDraft'
 
 const WORDS = ['no', 'one', 'two', 'three', 'four', 'five']
+/** The contract's limits (EvaluationDraft): a comment per criterion, and the overall comment. */
+const COMMENT_MAX = 2000
+const OVERALL_MAX = 4000
 
 /** P4: score one team on one assessment. */
 export function GradingPage() {
   const { teamId = '', assessment: slug } = useParams()
   const key = assessmentFromSlug(slug)
-  const q = useGrading(teamId, key ?? 'PROPOSAL_PRESENTATION')
+  const q = useGrading(teamId, key ?? 'PROPOSAL_PRESENTATION', !!key)
   useTitle(q.data ? `${q.data.assessment.name} · Team ${q.data.team.name}` : 'Grading')
 
   if (!key) return <NotFoundPage />
@@ -82,8 +86,9 @@ function GradingForm({ view }: { view: GradingView }) {
   const remaining = criteria.length - scored
   const nextIdx = items.findIndex((i) => i.level === null)
   const nextId = nextIdx >= 0 ? `c${nextIdx + 1}` : 'c1'
-  const dueIn = daysFromToday(a.due)
-  const overdue = !locked && dueIn < 0
+  // The server's flags: overdue = not submitted and past due; a late submission stays marked.
+  const overdue = !locked && view.overdue
+  const late = locked && view.submittedLate
   const others = peers.filter((p) => !p.you)
   const submittedCount = peers.filter((p) => p.state === 'SUBMITTED').length
   const state = locked ? 'SUBMITTED' : evaluation ? 'DRAFT' : 'NOT_STARTED'
@@ -112,7 +117,7 @@ function GradingForm({ view }: { view: GradingView }) {
   async function onConfirm() {
     try {
       // The submit carries the final form state, so the last edits and the lock are one call.
-      await submit.mutateAsync(takeForSubmit())
+      await submit.mutateAsync(await takeForSubmit())
       setConfirming(false)
       toast.success(`Submitted. Team ${team.name}'s ${a.name.toLowerCase()} is locked with your score of ${formatScore(score)}.`)
       window.scrollTo({ top: 0 })
@@ -154,11 +159,12 @@ function GradingForm({ view }: { view: GradingView }) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {state === 'SUBMITTED' && <StatusChip kind="submitted" />}
+            {late && <StatusChip kind="overdue">Submitted late · due {fmtDay(a.due)}</StatusChip>}
             {state === 'DRAFT' && <StatusChip kind="draft" />}
             {state === 'NOT_STARTED' && <StatusChip kind="notStarted" />}
             {overdue ? (
               <StatusChip kind="overdue">Overdue · due {fmtDay(a.due)}</StatusChip>
-            ) : (
+            ) : late ? null : (
               <StatusChip kind="plain" icon="calendar">
                 Due {fmtDay(a.due)}
                 {!locked && ` · ${fmtRelativeDays(a.due)}`}
@@ -255,9 +261,12 @@ function GradingForm({ view }: { view: GradingView }) {
                         value={comment}
                         readOnly={locked}
                         onChange={(e) => setComment(c.id, e.target.value)}
+                        maxLength={COMMENT_MAX}
+                        aria-describedby={`${id}-com-limit`}
                         placeholder="What should the team keep, or fix first?"
                         className="min-h-11 w-full resize-y rounded-ctl border border-line2 bg-surface px-3 py-2.5 text-[15px] leading-[22px] text-ink placeholder:text-muted"
                       />
+                      <LimitHint id={`${id}-com-limit`} value={comment} max={COMMENT_MAX} />
                     </div>
                   )}
                   {!showCom && !locked && (
@@ -288,9 +297,12 @@ function GradingForm({ view }: { view: GradingView }) {
                 value={draft.overall}
                 readOnly={locked}
                 onChange={(e) => setOverall(e.target.value)}
+                maxLength={OVERALL_MAX}
+                aria-describedby="overall-limit"
                 placeholder="A short summary for the team: main strengths, and the one thing to fix first."
                 className="min-h-11 w-full resize-y rounded-ctl border border-line2 bg-surface px-3 py-2.5 text-[15px] leading-[22px] text-ink placeholder:text-muted"
               />
+              <LimitHint id="overall-limit" value={draft.overall} max={OVERALL_MAX} />
             </Card>
           </div>
 
@@ -319,7 +331,7 @@ function GradingForm({ view }: { view: GradingView }) {
                 <span className="text-[14px] text-ink2">
                   <strong className="mono">{scored}</strong> of {criteria.length} criteria scored
                 </span>
-                <div className="grid grid-cols-7 gap-1.5">
+                <div className="grid grid-cols-5 gap-1.5">
                   {criteria.map((c, i) => {
                     const l = draft.levels[c.id] ?? null
                     return (
@@ -369,7 +381,7 @@ function GradingForm({ view }: { view: GradingView }) {
                       e.preventDefault()
                       goTo(nextId)
                     }}
-                    className="inline-flex min-h-8 items-center font-semibold text-amber hover:text-amber"
+                    className="inline-flex min-h-11 items-center font-semibold text-amber hover:text-amber"
                   >
                     Go to criterion {nextIdx + 1}
                   </a>
@@ -510,7 +522,7 @@ function MobileScoreBar(p: {
             )}
           </div>
           {!p.locked && p.remaining > 0 && (
-            <button type="button" onClick={p.onNext} className="inline-flex min-h-8 cursor-pointer items-center self-start bg-transparent p-0 text-[14px] font-semibold text-amber underline">
+            <button type="button" onClick={p.onNext} className="inline-flex min-h-11 cursor-pointer items-center self-start bg-transparent p-0 text-[14px] font-semibold text-amber underline">
               {p.remaining} left to score · go to criterion {p.nextN}
             </button>
           )}

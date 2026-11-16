@@ -119,7 +119,7 @@ export function MyTeamsPage() {
             aria-pressed={filter === k}
             onClick={() => setFilter(k)}
             className={cn(
-              'inline-flex min-h-11 cursor-pointer items-center rounded-[8px] border-0 bg-transparent px-3 text-[14px] font-medium text-ink2 md:min-h-9',
+              'inline-flex min-h-11 cursor-pointer items-center rounded-[8px] border-0 bg-transparent px-3 text-[14px] font-medium text-ink2',
               filter === k && 'bg-surface font-semibold text-ink shadow-[0_1px_2px_rgba(0,0,0,0.12)]',
             )}
           >
@@ -239,7 +239,7 @@ function EvalRow({ teamId, teamName, row, defense }: { teamId: string; teamName:
         <span className="mono text-[12px] text-muted">{a.weight}% of final grade</span>
       </span>
       <span>
-        {row.state === 'SUBMITTED' && <StatusChip kind="submitted" />}
+        {row.state === 'SUBMITTED' && (row.submittedLate ? <StatusChip kind="overdue" icon="lock">Submitted late</StatusChip> : <StatusChip kind="submitted" />)}
         {row.state === 'DRAFT' && (
           <StatusChip kind={row.overdue ? 'overdue' : 'draft'} icon={row.overdue ? 'clock' : 'pencil'}>
             {row.overdue ? 'Overdue' : 'Draft'} · {row.scored} of {row.total} scored

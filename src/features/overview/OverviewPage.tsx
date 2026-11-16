@@ -92,8 +92,8 @@ function Kpis({ k }: { k: OverviewView['kpis'] }) {
           )
         }
       />
-      <Kpi label="Final grades computed" value={<>{k.finals.count} <span className="text-[18px] text-muted">/ 6</span></>} foot={k.finals.names.join(', ') || 'None yet'} />
-      <Kpi label="Results released" value={<>{k.released} <span className="text-[18px] text-muted">/ {k.releasable}</span></>} meter={rel} foot="team × assessment results" />
+      <Kpi label="Final grades computed" value={<>{k.finals.count} <span className="text-[18px] text-muted">/ {k.teamCount}</span></>} foot={k.finals.names.join(', ') || 'None yet'} />
+      <Kpi label="Results released" value={<>{k.released} <span className="text-[18px] text-muted">/ {k.releasable}</span></>} meter={rel} foot={k.readyToRelease ? `${k.readyToRelease} final and ready to release` : 'team × assessment results'} />
       <Kpi
         label="Average final grade"
         value={
@@ -165,7 +165,7 @@ function OverviewBody({ data }: { data: OverviewView }) {
                     aria-pressed={filter === k}
                     onClick={() => setFilter(k)}
                     className={cn(
-                      'min-h-11 cursor-pointer rounded-[8px] border-0 bg-transparent px-3 text-[14px] font-medium text-ink2 md:min-h-9',
+                      'min-h-11 cursor-pointer rounded-[8px] border-0 bg-transparent px-3 text-[14px] font-medium text-ink2',
                       filter === k && 'bg-surface font-semibold text-ink shadow-[0_1px_2px_rgba(0,0,0,0.12)]',
                     )}
                   >
@@ -198,7 +198,7 @@ function OverviewBody({ data }: { data: OverviewView }) {
                 {[5, 8, 11].map((h) => (
                   <i key={h} className="block w-1 rounded-[1px] bg-current" style={{ height: h }} />
                 ))}
-                <i className="block h-3.5 w-1 rounded-[1px] border-[1.5px] border-current opacity-60" />
+                <i className="block h-3.5 w-1 rounded-[1px] border-[1.5px] border-current" />
               </span>
               Level band of the grade (bars + number)
             </span>
@@ -217,7 +217,7 @@ function OverviewBody({ data }: { data: OverviewView }) {
           </div>
         </Card>
         <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
-          <ReleasePanel releases={data.releases} />
+          <ReleasePanel releases={data.releases} teamCount={data.teamCount} />
           <ActivityFeed items={data.activity} />
         </div>
       </div>
@@ -225,7 +225,7 @@ function OverviewBody({ data }: { data: OverviewView }) {
   )
 }
 
-function ReleasePanel({ releases }: { releases: ReleaseCandidate[] }) {
+function ReleasePanel({ releases, teamCount }: { releases: ReleaseCandidate[]; teamCount: number }) {
   const [asking, setAsking] = useState<AssessmentKey | null>(null)
   const release = useRelease()
   async function go(r: ReleaseCandidate) {
@@ -253,7 +253,7 @@ function ReleasePanel({ releases }: { releases: ReleaseCandidate[] }) {
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-semibold">{r.assessment.name}</span>
               <span className="mono text-[12px] text-muted">
-                {r.finalTeams.length} of 6 final · {r.releasedCount} released
+                {r.finalTeams.length} of {teamCount} final · {r.releasedCount} released
               </span>
             </div>
             {asking !== r.assessment.key ? (

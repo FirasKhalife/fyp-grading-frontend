@@ -30,13 +30,26 @@ export function userManager(): UserManager {
   return manager
 }
 
+const METHOD_KEY = 'assay-signin-method'
+function setMethod(m: 'password' | 'code' | null) {
+  try {
+    if (m) sessionStorage.setItem(METHOD_KEY, m)
+    else sessionStorage.removeItem(METHOD_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 /** One-click persona sign-in (password grant on the public demo accounts). */
 export async function signInPersona(username: string): Promise<User> {
-  return userManager().signinResourceOwnerCredentials({ username, password: demoPassword })
+  const u = await userManager().signinResourceOwnerCredentials({ username, password: demoPassword })
+  setMethod('password')
+  return u
 }
 
 /** "Sign in with email": the code flow with PKCE. */
 export async function signInWithEmail(loginHint?: string, returnTo = '/home'): Promise<void> {
+  setMethod('code')
   await userManager().signinRedirect({ login_hint: loginHint, state: { returnTo } })
 }
 
@@ -52,7 +65,25 @@ export async function currentUser(): Promise<User | null> {
   return u && !u.expired ? u : null
 }
 
+/**
+ * Signs out. A code-flow sign-in also ends the Keycloak session, so the next "Sign in with email"
+ * asks again; a persona's password grant has no browser session to end.
+ */
 export async function signOut(): Promise<void> {
+  let method: string | null = null
+  try {
+    method = sessionStorage.getItem(METHOD_KEY)
+  } catch {
+    /* ignore */
+  }
+  setMethod(null)
+  if (method === 'code') await userManager().signoutRedirect()
+  else await userManager().removeUser()
+}
+
+/** Forget the local user without a redirect (expired or rejected token). */
+export async function dropUser(): Promise<void> {
+  setMethod(null)
   await userManager().removeUser()
 }
 

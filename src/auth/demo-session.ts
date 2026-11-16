@@ -5,6 +5,7 @@
 
 const SESSION_KEY = 'assay-demo-session'
 const RESET_FLAG = 'assay-demo-reset-overnight'
+const HAD_COPY = 'assay-demo-had-copy'
 
 let memoryId: string | null = null
 
@@ -39,6 +40,12 @@ function uuid(): string {
   })
 }
 
+/** Forget an unusable id; the next call makes a new one (and so a new copy). */
+export function resetBrowserDemoSessionId() {
+  safeRemove(SESSION_KEY)
+  memoryId = null
+}
+
 export function browserDemoSessionId(): string {
   let id = safeGet(SESSION_KEY) ?? memoryId
   if (!id) {
@@ -47,6 +54,21 @@ export function browserDemoSessionId(): string {
   }
   memoryId = id
   return id
+}
+
+/** Set once the server confirmed a copy exists for this browser's id. */
+export function markCopyCreated() {
+  safeSet(HAD_COPY, '1')
+}
+
+/**
+ * A 404 for the demo session means "purged overnight" only if this browser had a copy before;
+ * a brand-new browser simply has none yet. Clears the marker either way.
+ */
+export function wasPurged(): boolean {
+  const had = safeGet(HAD_COPY) === '1'
+  safeRemove(HAD_COPY)
+  return had
 }
 
 /** Marks that the server said this copy is gone (purged at midnight), for the landing banner. */

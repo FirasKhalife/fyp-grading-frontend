@@ -9,6 +9,7 @@ import {
   compositionDto,
   dueInstant,
   defenseSlot,
+  lateFor,
   evaluationDto,
   finalState,
   historyDto,
@@ -315,6 +316,7 @@ export const handlers = [
               evaluationId: e?.id ?? null,
               updatedAt: e ? parisToUtc(e.updatedAt) : null,
               submittedAt: e?.submittedAt ? parisToUtc(e.submittedAt) : null,
+              submittedLate: lateFor(e?.submittedAt, row.assessment.due),
             }
           }),
         })),

@@ -15,9 +15,23 @@ export function setDemoNow(d: Date | null): void {
   fixedNow = d
 }
 
-/** "Now" on the Paris wall clock (see tz.ts). Tests pin it with setDemoNow. */
+let sessionToday: string | null = null
+
+/**
+ * Anchors "today" on the demo session's `today` (defense day 2 of this copy), so the screens agree
+ * with the server even if the browser clock is off or the nightly purge runs late.
+ */
+export function setSessionToday(isoDate: string | null) {
+  sessionToday = isoDate && /^\d{4}-\d{2}-\d{2}$/.test(isoDate) ? isoDate : null
+}
+
+/** "Now" on the Paris wall clock (see tz.ts): the session's date, the clock's time. Tests pin it with setDemoNow. */
 export function now(): Date {
-  return fixedNow ? new Date(fixedNow) : parisWall()
+  if (fixedNow) return new Date(fixedNow)
+  const wall = parisWall()
+  if (!sessionToday) return wall
+  const [y, m, d] = sessionToday.split('-').map(Number)
+  return new Date(y!, m! - 1, d!, wall.getHours(), wall.getMinutes(), wall.getSeconds())
 }
 
 /** The real instant, for anything computed with Intl in a time zone. */

@@ -3,8 +3,9 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { useEffect } from 'react'
 import { useViewer } from '@/auth/AuthProvider'
 import type { AssessmentKey, Criterion, ReviewerRole } from '@/domain/types'
-import { apiUrl, authHeaders } from './client'
+import { apiUrl, authHeaders, notifyUnauthorized } from './client'
 import { repository as repo, type DraftState } from './repository'
+import type { GradingView } from './views'
 
 export const qk = {
   all: ['assay'] as const,
@@ -24,10 +25,14 @@ function invalidateAll(qc: QueryClient) {
   return qc.invalidateQueries({ queryKey: qk.all })
 }
 
+/** Stops the stream's retries (the library rethrows errors thrown from onerror). */
+class StreamStopped extends Error {}
+
 /**
  * Live updates over the notification stream (SSE, contract `/api/notifications/stream`). A fetch-based
- * client sends the two headers EventSource can't. New notifications, activity and unread counts
- * refetch what they affect; after a drop it reconnects and refetches to catch up.
+ * client sends the two headers EventSource can't, rebuilt on every (re)connect so a refreshed token is
+ * used. A 401 or 403 stops the retries and signs the user out; other drops retry with back-off, and
+ * each reconnect refetches to catch up. Events refresh only what they can change.
  */
 export function useLiveUpdates() {
   const qc = useQueryClient()
@@ -35,30 +40,39 @@ export function useLiveUpdates() {
   useEffect(() => {
     const ctrl = new AbortController()
     let opened = false
-    void (async () => {
-      try {
-        await fetchEventSource(apiUrl('/api/notifications/stream'), {
-          signal: ctrl.signal,
-          headers: await authHeaders(),
-          openWhenHidden: true,
-          async onopen(res) {
-            if (!res.ok) throw new Error(`stream ${res.status}`)
-            if (opened) void invalidateAll(qc)
-            opened = true
-          },
-          onmessage(ev) {
-            if (ev.event === 'notification' || ev.event === 'unread-count') void qc.invalidateQueries({ queryKey: qk.notifications(viewer.userId) })
-            if (ev.event === 'notification' || ev.event === 'activity') void invalidateAll(qc)
-          },
-          onerror() {
-            // Retry with the library's back-off; queries still poll as a fallback.
-            return 5_000
-          },
-        })
-      } catch {
-        /* stream unavailable: polling keeps the screens fresh */
-      }
-    })()
+    void fetchEventSource(apiUrl('/api/notifications/stream'), {
+      signal: ctrl.signal,
+      openWhenHidden: true,
+      // Fresh headers per attempt: the library would otherwise reuse the first token forever.
+      fetch: async (input, init) => fetch(input, { ...init, headers: { ...(init?.headers as Record<string, string>), ...(await authHeaders()) } }),
+      async onopen(res) {
+        if (res.status === 401 || res.status === 403) {
+          if (res.status === 401) notifyUnauthorized()
+          throw new StreamStopped()
+        }
+        if (!res.ok) throw new Error(`stream ${res.status}`)
+        if (opened) void invalidateAll(qc)
+        opened = true
+      },
+      onmessage(ev) {
+        if (ev.event === 'notification' || ev.event === 'unread-count') void qc.invalidateQueries({ queryKey: qk.notifications(viewer.userId) })
+        if (ev.event === 'notification') {
+          // A grade became final, results were released, a slot moved: the lists that show those.
+          for (const key of [qk.myTeams(viewer.userId), qk.student(viewer.userId), qk.overview, qk.schedule(viewer.userId)]) void qc.invalidateQueries({ queryKey: key })
+          void qc.invalidateQueries({ queryKey: ['assay', 'team'] })
+        }
+        if (ev.event === 'activity') {
+          void qc.invalidateQueries({ queryKey: qk.overview })
+          void qc.invalidateQueries({ queryKey: ['assay', 'team'] })
+        }
+      },
+      onerror(err) {
+        if (err instanceof StreamStopped) throw err
+        return 5_000
+      },
+    }).catch(() => {
+      /* stopped: polling keeps the screens fresh */
+    })
     return () => ctrl.abort()
   }, [qc, viewer.userId])
 }
@@ -68,16 +82,26 @@ export function useMyTeams() {
   return useQuery({ queryKey: qk.myTeams(viewer.userId), queryFn: () => repo.myTeams() })
 }
 
-export function useGrading(teamId: string, a: AssessmentKey) {
+export function useGrading(teamId: string, a: AssessmentKey, enabled = true) {
   const { viewer } = useViewer()
-  return useQuery({ queryKey: qk.grading(viewer.userId, teamId, a), queryFn: () => repo.grading(teamId, a) })
+  return useQuery({ queryKey: qk.grading(viewer.userId, teamId, a), queryFn: () => repo.grading(teamId, a), enabled })
 }
 
+/**
+ * Autosave. Each save returns the evaluation, so the grading view is updated in place; only My teams
+ * (draft counts) is refetched. Submit and release still refresh everything.
+ */
 export function useSaveDraft(teamId: string, a: AssessmentKey) {
   const qc = useQueryClient()
+  const { viewer } = useViewer()
   return useMutation({
     mutationFn: (d: DraftState) => repo.saveDraft(teamId, a, d),
-    onSuccess: () => invalidateAll(qc),
+    onSuccess: (evaluation) => {
+      qc.setQueryData<GradingView>(qk.grading(viewer.userId, teamId, a), (v) =>
+        v ? { ...v, evaluation, peers: v.peers.map((p) => (p.you && p.state === 'NOT_STARTED' ? { ...p, state: 'DRAFT' as const } : p)) } : v,
+      )
+      void qc.invalidateQueries({ queryKey: qk.myTeams(viewer.userId) })
+    },
   })
 }
 
@@ -125,7 +149,7 @@ export function useSetDue() {
 export function useMoveDefense() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ teamId, start, room }: { teamId: string; start: string; room?: string }) => repo.moveDefense(teamId, start, room),
+    mutationFn: ({ teamId, start, room }: { teamId: string; start: string; room: string }) => repo.moveDefense(teamId, start, room),
     onSuccess: () => invalidateAll(qc),
   })
 }

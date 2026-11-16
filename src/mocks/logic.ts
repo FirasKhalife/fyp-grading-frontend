@@ -200,6 +200,7 @@ function myRow(state: DemoState, t: Team, key: AssessmentKey, userId: string): M
     assessment: a,
     state: st,
     overdue: st !== 'SUBMITTED' && isPast(a.due),
+    submittedLate: !!e?.submittedAt && e.submittedAt.slice(0, 10) > a.due,
     score: e && st === 'SUBMITTED' ? scoreOf(state, e) : null,
     scored: scoredCount(state, e, key),
     total: rubric(state, key).criteria.length,
@@ -256,7 +257,17 @@ export function gradingView(state: DemoState, userId: string, teamId: string, ke
     return { reviewer: personRef(p), you: p.id === userId, state: evalState(e), at: e?.submittedAt ?? null }
   })
   peers.sort((x, y) => Number(x.you) - Number(y.you))
-  return { team: t, assessment: a, rubric: rubric(state, key), evaluation: evaluationOf(state, teamId, key, userId), role: a.role, peers }
+  const mine = evaluationOf(state, teamId, key, userId)
+  return {
+    team: t,
+    assessment: a,
+    rubric: rubric(state, key),
+    evaluation: mine,
+    role: a.role,
+    peers,
+    overdue: mine?.status !== 'SUBMITTED' && isPast(a.due),
+    submittedLate: !!mine?.submittedAt && mine.submittedAt.slice(0, 10) > a.due,
+  }
 }
 
 function needsText(cells: TeamAssessmentInfo[]): string {
@@ -303,6 +314,8 @@ export function overviewView(state: DemoState): OverviewView {
       finals: { count: finals.length, names: finals.map((r) => r.team.name) },
       released: state.releases.length,
       releasable: rows.length * ASSESSMENTS.length,
+      readyToRelease: releases.reduce((s, r) => s + r.pendingTeams.length, 0),
+      teamCount: rows.length,
       average: finals.length ? finals.reduce((s, r) => s + (r.final as number), 0) / finals.length : null,
     },
     rows,

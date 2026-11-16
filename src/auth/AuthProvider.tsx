@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
-import { ApiError, setTokenProvider, setUnauthorizedHandler } from '@/api/client'
+import { ApiError, setSessionProblemHandler, setTokenProvider, setUnauthorizedHandler } from '@/api/client'
 import { repository, type Viewer } from '@/api/repository'
-import { markOvernightReset } from './demo-session'
-import { accessToken, currentUser, oidcEnabled, signInPersona, signOut } from './oidc'
-import { personaById, personaByUsername, type Persona, type PersonaId } from './personas'
+import { setSessionToday } from '@/lib/demo-clock'
+import { markCopyCreated, markOvernightReset, resetBrowserDemoSessionId, wasPurged } from './demo-session'
+import { accessToken, completeSignIn, currentUser, dropUser, oidcEnabled, signInPersona, signInWithEmail, signOut } from './oidc'
+import { identityFrom, personaById, type Persona, type PersonaId } from './personas'
 
 const PERSONA_KEY = 'assay-persona'
 
@@ -13,7 +14,13 @@ export interface AuthState {
   /** True while the visitor's private copy of the demo data is being created. */
   creating: boolean
   ready: boolean
+  /** The sign-in expired (a 401): the app shows "Session expired". */
+  expired: boolean
   enterAs: (id: PersonaId) => Promise<Persona>
+  /** "Sign in with email": redirects to Keycloak (code flow with PKCE). */
+  signInWithEmail: () => Promise<void>
+  /** Finishes the code flow on /auth/callback and returns where to go. */
+  completeEmailSignIn: () => Promise<string>
   signOut: () => Promise<void>
 }
 
@@ -36,57 +43,105 @@ function readPersona(): Persona | null {
 }
 function writePersona(p: Persona | null) {
   try {
-    if (p) localStorage.setItem(PERSONA_KEY, p.id)
+    if (p && p.id !== 'account') localStorage.setItem(PERSONA_KEY, p.id)
     else localStorage.removeItem(PERSONA_KEY)
   } catch {
     /* private mode */
   }
 }
 
+/** Make sure this browser's copy exists, and anchor "today" on it. */
+async function ensureCopy(): Promise<void> {
+  const s = await repository.ensureDemoSession()
+  setSessionToday(s.today)
+  markCopyCreated()
+}
+
+/** With Keycloak: who the token belongs to, as a persona or a plain account. */
+async function identityFromToken(): Promise<Persona | null> {
+  const u = await currentUser()
+  if (!u) return null
+  const me = await repository.me()
+  return identityFrom(me, u.profile.preferred_username)
+}
+
 /**
  * Who is signed in. Offline (MSW) the token is a mock token naming the persona; with Keycloak it is
- * the access token of the persona's account. Either way the persona card signs in and then makes
- * sure the visitor's private demo copy exists (PUT /api/demo/session).
+ * the access token from the persona's password grant or the email code flow. Either way, signing in
+ * makes sure the visitor's private demo copy exists (PUT /api/demo/session).
  */
 export function AuthProvider({ children, initialPersona }: { children: ReactNode; initialPersona?: PersonaId }) {
   const [persona, setPersona] = useState<Persona | null>(() => (initialPersona ? personaById(initialPersona) : oidcEnabled ? null : readPersona()))
   const [ready, setReady] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [expired, setExpired] = useState(false)
 
   // Layout effects run before any child's data effects, so the first query already carries the token.
   useLayoutEffect(() => {
     signedInAs = persona
   }, [persona])
 
-  useEffect(() => {
-    setUnauthorizedHandler(() => {
-      writePersona(null)
-      setPersona(null)
-    })
-    return () => setUnauthorizedHandler(null)
+  const forget = useCallback(() => {
+    writePersona(null)
+    signedInAs = null
+    setPersona(null)
   }, [])
 
-  // On start: restore the session, and check the demo copy still exists (it's purged at midnight).
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      if (oidcEnabled) void dropUser()
+      forget()
+      setExpired(true)
+    })
+    setSessionProblemHandler((e: ApiError) => {
+      if (e.code === 'demo-session-required') {
+        // The stored id is unusable: start a fresh one and a fresh copy.
+        resetBrowserDemoSessionId()
+        void ensureCopy()
+        return
+      }
+      // demo-session-not-found mid-visit: the copy was purged at midnight.
+      wasPurged()
+      markOvernightReset()
+      forget()
+    })
+    return () => {
+      setUnauthorizedHandler(null)
+      setSessionProblemHandler(null)
+    }
+  }, [forget])
+
+  // On start: restore the sign-in, then check the demo copy.
   useEffect(() => {
     let live = true
     void (async () => {
-      let p = persona
-      if (oidcEnabled && !initialPersona) {
-        const u = await currentUser()
-        p = personaByUsername(u?.profile.preferred_username)
-        if (live) setPersona(p)
+      if (initialPersona) {
+        if (live) setReady(true)
+        return
       }
-      if (p && !initialPersona) {
-        signedInAs = p
-        try {
-          await repository.demoSession()
-        } catch (e) {
-          if (e instanceof ApiError && e.status === 404) {
-            markOvernightReset()
-            writePersona(null)
-            if (live) setPersona(null)
+      let p = persona
+      try {
+        if (oidcEnabled) {
+          p = await identityFromToken()
+          if (live) setPersona(p)
+        }
+        if (p) {
+          signedInAs = p
+          try {
+            const s = await repository.demoSession()
+            setSessionToday(s.today)
+            markCopyCreated()
+          } catch (e) {
+            if (!(e instanceof ApiError) || e.status !== 404) throw e
+            // A 404 is the nightly purge only if this browser had a copy; a new browser just needs one.
+            if (wasPurged()) {
+              markOvernightReset()
+              forget()
+            } else await ensureCopy()
           }
         }
+      } catch {
+        /* the server is unreachable: screens show their own error states */
       }
       if (live) setReady(true)
     })()
@@ -104,24 +159,50 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
     signedInAs = p
     setCreating(true)
     try {
-      await repository.ensureDemoSession()
+      await ensureCopy()
     } finally {
       setCreating(false)
     }
     writePersona(p)
+    setExpired(false)
     setPersona(p)
     return p
   }, [])
 
-  const doSignOut = useCallback(async () => {
-    writePersona(null)
-    if (oidcEnabled) await signOut()
-    setPersona(null)
+  const completeEmailSignIn = useCallback(async () => {
+    const { returnTo } = await completeSignIn()
+    const p = await identityFromToken()
+    if (!p) throw new Error('No user after sign-in')
+    signedInAs = p
+    setCreating(true)
+    try {
+      await ensureCopy()
+    } finally {
+      setCreating(false)
+    }
+    setExpired(false)
+    setPersona(p)
+    return returnTo === '/home' ? p.home : returnTo
   }, [])
 
+  const doSignOut = useCallback(async () => {
+    forget()
+    if (oidcEnabled) await signOut()
+  }, [forget])
+
   const value = useMemo<AuthState>(
-    () => ({ persona, viewer: persona ? viewerOf(persona) : null, creating, ready, enterAs, signOut: doSignOut }),
-    [persona, creating, ready, enterAs, doSignOut],
+    () => ({
+      persona,
+      viewer: persona ? viewerOf(persona) : null,
+      creating,
+      ready,
+      expired,
+      enterAs,
+      signInWithEmail: () => signInWithEmail(),
+      completeEmailSignIn,
+      signOut: doSignOut,
+    }),
+    [persona, creating, ready, expired, enterAs, completeEmailSignIn, doSignOut],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

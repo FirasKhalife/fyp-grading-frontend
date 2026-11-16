@@ -12,7 +12,8 @@ export type AssessmentKey =
 
 export type ReviewerRole = 'JURY' | 'ADVISOR'
 
-export type PersonaRole = 'COORDINATOR' | 'JURY' | 'ADVISOR' | 'STUDENT'
+/** The roles the screens know. REVIEWER is a faculty member who isn't one of the four demo personas. */
+export type PersonaRole = 'COORDINATOR' | 'JURY' | 'ADVISOR' | 'REVIEWER' | 'STUDENT'
 
 /** 0 = Not demonstrated … 4 = Exemplary. */
 export type Level = 0 | 1 | 2 | 3 | 4

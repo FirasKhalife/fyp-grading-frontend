@@ -22,7 +22,8 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
   const [draft, setDraft] = useState<DraftState>(() => fromEvaluation(evaluation, criterionIds))
   const [savedAt, setSavedAt] = useState<string | null>(evaluation?.updatedAt ?? null)
   const [saving, setSaving] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailedState] = useState(false)
+  const failedRef = useRef(false)
   const save = useSaveDraft(teamId, a)
   const latest = useRef(draft)
   const dirty = useRef(false)
@@ -32,22 +33,41 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
     saveRef.current = save.mutateAsync
   })
 
-  const flush = useCallback(async () => {
+  const inFlight = useRef<Promise<void> | null>(null)
+
+  /**
+   * Saves are serialised: while one is in flight, later changes only mark the form dirty, and the
+   * latest full state is sent once it settles. Two quick picks can't land out of order.
+   */
+  const flush = useCallback(async (): Promise<void> => {
     if (timer.current) clearTimeout(timer.current)
     timer.current = null
-    if (!dirty.current) return
-    dirty.current = false
-    setSaving(true)
-    try {
-      const e = await saveRef.current(latest.current)
-      setSavedAt(e.updatedAt)
-      setFailed(false)
-    } catch {
-      dirty.current = true
-      setFailed(true)
-    } finally {
-      setSaving(false)
+    // Wait for a save in flight; it will hand over to this loop when it settles.
+    while (inFlight.current) await inFlight.current
+    while (dirty.current) {
+      dirty.current = false
+      setSaving(true)
+      let ok = true
+      const run = saveRef.current(latest.current).then(
+        (e) => {
+          setSavedAt(e.updatedAt)
+          failedRef.current = false
+          setFailedState(false)
+        },
+        () => {
+          ok = false
+          dirty.current = true
+          failedRef.current = true
+          setFailedState(true)
+        },
+      )
+      inFlight.current = run
+      await run
+      inFlight.current = null
+      // A failed save waits for the next change rather than retrying in a tight loop.
+      if (!ok) break
     }
+    setSaving(false)
   }, [])
 
   const update = useCallback(
@@ -68,9 +88,11 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
   const setOverall = useCallback((text: string) => update((d) => ({ ...d, overall: text }), 700), [update])
 
   /** Cancel a pending autosave and hand back the full state (submit sends it in the same call). */
-  const takeForSubmit = useCallback(() => {
+  const takeForSubmit = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current)
     timer.current = null
+    // Let a save in flight finish first, so it can't overwrite the submitted state afterwards.
+    if (inFlight.current) await inFlight.current
     dirty.current = false
     return latest.current
   }, [])

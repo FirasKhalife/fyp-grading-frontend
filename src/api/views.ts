@@ -28,7 +28,10 @@ export interface PersonRef {
 export interface MyEvalRow {
   assessment: Assessment
   state: EvalState
+  /** Not submitted and past due. */
   overdue: boolean
+  /** Submitted after the due date: stays marked (brief 4.4). */
+  submittedLate: boolean
   score: number | null
   scored: number
   total: number
@@ -62,12 +65,17 @@ export interface GradingView {
   evaluation: Evaluation | null
   role: ReviewerRole
   peers: PeerStatus[]
+  /** From the server: not submitted and past due. */
+  overdue: boolean
+  /** From the server: submitted after the due date. */
+  submittedLate: boolean
 }
 
 export interface ReviewerScore {
   reviewer: PersonRef
   state: EvalState
-  /** Score so far (submitted, or the draft's running score). */
+  submittedLate?: boolean
+  /** Score so far (submitted, or the draft's running score); null when the server hides it. */
   score: number | null
   evaluation: Evaluation | null
 }
@@ -111,7 +119,11 @@ export interface OverviewView {
     overdue: { count: number; label: string }
     finals: { count: number; names: string[] }
     released: number
+    /** Every team × assessment result (the denominator of "released"). */
     releasable: number
+    /** Final but not released yet: the server's `resultsReleasable`. */
+    readyToRelease: number
+    teamCount: number
     average: number | null
   }
   rows: GridRow[]
