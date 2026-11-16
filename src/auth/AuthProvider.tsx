@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ApiError, setSessionProblemHandler, setTokenProvider, setUnauthorizedHandler } from '@/api/client'
 import { repository, type Viewer } from '@/api/repository'
 import { setSessionToday } from '@/lib/demo-clock'
@@ -22,6 +23,9 @@ export interface AuthState {
   /** Finishes the code flow on /auth/callback and returns where to go. */
   completeEmailSignIn: () => Promise<string>
   signOut: () => Promise<void>
+  /** The copy was purged at midnight and a fresh one was made: the shell says so until dismissed. */
+  freshCopy: boolean
+  dismissFreshCopy: () => void
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -75,6 +79,10 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
   const [ready, setReady] = useState(false)
   const [creating, setCreating] = useState(false)
   const [expired, setExpired] = useState(false)
+  const [freshCopy, setFreshCopy] = useState(false)
+  const qc = useQueryClient()
+  const recovering = useRef<Promise<void> | null>(null)
+  const lastRecovery = useRef(0)
 
   // Layout effects run before any child's data effects, so the first query already carries the token.
   useLayoutEffect(() => {
@@ -86,6 +94,32 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
     signedInAs = null
     setPersona(null)
   }, [])
+
+  /**
+   * The copy is gone (midnight purge): make a new one with PUT /api/demo/session, stay signed in,
+   * refetch everything and say so. Many queries fail at once, so one recovery serves them all. If the
+   * new copy can't be made, or the copy vanishes again straight away, fall back to the landing page.
+   */
+  const recover = useCallback(() => {
+    if (recovering.current) return recovering.current
+    recovering.current = (async () => {
+      wasPurged()
+      const again = Date.now() - lastRecovery.current < 10_000
+      try {
+        if (again) throw new Error('The copy vanished again')
+        await ensureCopy()
+        lastRecovery.current = Date.now()
+        setFreshCopy(true)
+        void qc.invalidateQueries()
+      } catch {
+        markOvernightReset()
+        forget()
+      } finally {
+        recovering.current = null
+      }
+    })()
+    return recovering.current
+  }, [forget, qc])
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
@@ -101,15 +135,13 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
         return
       }
       // demo-session-not-found mid-visit: the copy was purged at midnight.
-      wasPurged()
-      markOvernightReset()
-      forget()
+      void recover()
     })
     return () => {
       setUnauthorizedHandler(null)
       setSessionProblemHandler(null)
     }
-  }, [forget])
+  }, [forget, recover])
 
   // On start: restore the sign-in, then check the demo copy.
   useEffect(() => {
@@ -134,10 +166,8 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
           } catch (e) {
             if (!(e instanceof ApiError) || e.status !== 404) throw e
             // A 404 is the nightly purge only if this browser had a copy; a new browser just needs one.
-            if (wasPurged()) {
-              markOvernightReset()
-              forget()
-            } else await ensureCopy()
+            if (wasPurged()) await recover()
+            else await ensureCopy()
           }
         }
       } catch {
@@ -186,6 +216,7 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
   }, [])
 
   const doSignOut = useCallback(async () => {
+    setFreshCopy(false)
     forget()
     if (oidcEnabled) await signOut()
   }, [forget])
@@ -201,8 +232,10 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
       signInWithEmail: () => signInWithEmail(),
       completeEmailSignIn,
       signOut: doSignOut,
+      freshCopy,
+      dismissFreshCopy: () => setFreshCopy(false),
     }),
-    [persona, creating, ready, expired, enterAs, completeEmailSignIn, doSignOut],
+    [persona, creating, ready, expired, enterAs, completeEmailSignIn, doSignOut, freshCopy],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

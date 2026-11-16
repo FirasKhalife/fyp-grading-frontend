@@ -517,6 +517,8 @@ export function ReviewersCard({ v }: { v: Pick<TeamDetailView, 'team' | 'reviewe
   const all = useTeams()
   const [adding, setAdding] = useState(false)
   const [err, setErr] = useState('')
+  /** Why a removal was refused (409 `reviewer-has-submissions` or `assessment-final`, 422 `composition-invalid`), shown in the card. */
+  const [removeErr, setRemoveErr] = useState('')
   const free = (all.data?.reviewers ?? []).filter((r) => !v.reviewers.some((x) => x.reviewer.id === r.id))
   async function assign(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -603,8 +605,11 @@ export function ReviewersCard({ v }: { v: Pick<TeamDetailView, 'team' | 'reviewe
                   aria-label={`Remove ${r.reviewer.firstName} ${r.reviewer.lastName} from Team ${v.team.name}`}
                   onClick={() =>
                     ops.mutateAsync({ op: 'unassign', teamId: v.team.id, reviewerId: r.reviewer.id }).then(
-                      () => toast.success(`${r.reviewer.firstName} ${r.reviewer.lastName} removed from the team.`),
-                      (x: unknown) => toast.error(x instanceof Error ? x.message : 'Could not remove.'),
+                      () => {
+                        setRemoveErr('')
+                        toast.success(`${r.reviewer.firstName} ${r.reviewer.lastName} removed from the team.`)
+                      },
+                      (x: unknown) => setRemoveErr(`${r.reviewer.firstName} ${r.reviewer.lastName} stays on the team. ${x instanceof Error ? x.message : ''}`.trim()),
                     )
                   }
                   className="flex size-11 flex-none cursor-pointer items-center justify-center rounded-ctl border-0 bg-transparent text-muted hover:bg-raised hover:text-ink"
@@ -616,6 +621,12 @@ export function ReviewersCard({ v }: { v: Pick<TeamDetailView, 'team' | 'reviewe
           </li>
         ))}
       </ul>
+      {removeErr && (
+        <p role="alert" className="m-0 flex gap-2 rounded-ctl border border-amber-line bg-amber-bg p-3 text-[14px] leading-5">
+          <Icon name="warn" size={18} className="flex-none text-amber" />
+          {removeErr}
+        </p>
+      )}
       <p className="m-0 text-[13px] leading-[19px] text-muted">Rules: 1 to 5 reviewers, at least 1 jury member and at least 1 advisor.</p>
     </Card>
   )
@@ -627,12 +638,15 @@ function EditTeam({ v, onDone }: { v: TeamDetailView; onDone: () => void }) {
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
+    const name = String(f.get('name')).trim()
+    const projectTitle = String(f.get('title')).trim()
+    // The server refuses a blank name or title (400); an empty description clears it (contract 1.3.0).
+    if (!name || !projectTitle) {
+      setErr(!name ? 'Give the team a name.' : 'Give the project a title.')
+      return
+    }
     try {
-      await ops.mutateAsync({
-        op: 'update',
-        teamId: v.team.id,
-        patch: { name: String(f.get('name')), projectTitle: String(f.get('title')), description: String(f.get('desc')) },
-      })
+      await ops.mutateAsync({ op: 'update', teamId: v.team.id, patch: { name, projectTitle, description: String(f.get('desc')).trim() } })
       toast.success('Team saved.')
       onDone()
     } catch (x) {
@@ -647,7 +661,7 @@ function EditTeam({ v, onDone }: { v: TeamDetailView; onDone: () => void }) {
       </label>
       <label className="flex flex-col gap-1 text-[13px] font-semibold text-muted">
         Project title
-        <input name="title" defaultValue={v.team.projectTitle} className={field} />
+        <input name="title" defaultValue={v.team.projectTitle} required className={field} />
       </label>
       <label className="flex flex-col gap-1 text-[13px] font-semibold text-muted">
         Short description

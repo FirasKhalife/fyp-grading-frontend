@@ -410,10 +410,13 @@ function OverviewError({ onRetry }: { onRetry: () => void }) {
                 <Button
                   variant="ghost"
                   onClick={() =>
-                    void reset.mutateAsync().then(async () => {
-                      await signOut()
-                      window.location.assign('/')
-                    })
+                    void reset.mutateAsync().then(
+                      async () => {
+                        await signOut()
+                        window.location.assign('/')
+                      },
+                      (e: unknown) => toast.error(e instanceof Error ? e.message : "The reset didn't go through. Try again in a moment."),
+                    )
                   }
                 >
                   Reset my demo

@@ -16,7 +16,8 @@ import type {
   Student,
   Team,
 } from '@/domain/types'
-import { now, parseLocal } from '@/lib/demo-clock'
+import { now, parseLocal, setSessionToday } from '@/lib/demo-clock'
+import { markCopyCreated, setBrowserDemoSessionId } from '@/auth/demo-session'
 import { parisToUtc, utcToParis } from '@/lib/tz'
 import { api, ApiError } from './client'
 import type { components } from './schema'
@@ -218,8 +219,13 @@ export const httpRepository = {
   async ensureDemoSession() {
     return api.put<S<'DemoSession'>>('/api/demo/session')
   },
-  async resetDemo(): Promise<void> {
-    await api.post<S<'DemoSession'>>('/api/demo/session/reset')
+  /** The fresh copy has a NEW id (contract 1.3.0): use it from now on; the old one answers 404. */
+  async resetDemo(): Promise<S<'DemoSession'>> {
+    const s = await api.post<S<'DemoSession'>>('/api/demo/session/reset')
+    setBrowserDemoSessionId(s.id)
+    setSessionToday(s.today)
+    markCopyCreated()
+    return s
   },
   async me() {
     return api.get<S<'Me'>>('/api/me')

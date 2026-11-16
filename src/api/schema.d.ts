@@ -69,7 +69,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** "Reset my demo": delete this copy and create a fresh one under the same id */
+        /**
+         * "Reset my demo": delete this copy and create a fresh one under a NEW id
+         * @description The response's `id` is the new demo session id: store it and send it as `X-Demo-Session` from now on.
+         *     The old id is deleted and answers 404 `demo-session-not-found`.
+         */
         post: operations["resetDemoSession"];
         delete?: never;
         options?: never;
@@ -415,7 +419,9 @@ export interface paths {
          * @description The resulting set must satisfy the composition rules (brief 4.3): 1 to 5 reviewers in total, at least one
          *     JURY and at least one ADVISOR, one role per reviewer. Otherwise 422 `composition-invalid` with the
          *     `problems` list. Removing a reviewer, or changing their role, after they submitted an evaluation for this
-         *     team is refused with 409 `reviewer-has-submissions`. Added reviewers and changed roles are notified.
+         *     team is refused with 409 `reviewer-has-submissions`. Once an assessment's team grade is final, a change
+         *     that would alter that assessment's reviewers is refused with 409 `assessment-final`. Added reviewers and
+         *     changed roles are notified.
          */
         put: operations["replaceTeamReviewers"];
         post?: never;
@@ -521,7 +527,8 @@ export interface paths {
         /**
          * Save the draft (autosave). Creates it on first save
          * @description Send the full state of the form: every criterion with its level (or null) and comment. Idempotent, safe to
-         *     call on every change (debounce it). 409 `evaluation-submitted` once submitted.
+         *     call on every change (debounce it). 409 `evaluation-submitted` once submitted, 409 `evaluation-submitting`
+         *     while a submit is being handed over, 409 `rubric-changed` if a criterion is no longer in the rubric.
          */
         put: operations["saveMyEvaluationDraft"];
         post?: never;
@@ -552,7 +559,10 @@ export interface paths {
          *     one call. Every criterion must have a level, otherwise 422 `criteria-unscored` with the missing criterion
          *     ids in `errors`. The score is computed by the server. Submitting is permanent (no reopening, by anyone) and
          *     is safe to retry: a second submit of an already-submitted evaluation returns it unchanged (200).
-         *     The grade then flows asynchronously to the team grade, the final grade and the notifications.
+         *     While the grade is handed over the evaluation is frozen (autosaves get 409 `evaluation-submitting`), so the
+         *     stored levels always match the score. The team grade and final grade are computed during the call; the
+         *     notifications follow asynchronously. 409 `assessment-final` if the team grade is already final,
+         *     `evaluation-changed` if the draft kept changing during the submit (retry).
          */
         post: operations["submitMyEvaluation"];
         delete?: never;
@@ -573,7 +583,7 @@ export interface paths {
         };
         /**
          * Evaluations for one team and assessment, with levels and comments (P6, admin)
-         * @description Admin sees drafts and submitted ones. A reviewer on the team sees submitted ones only, once the team assessment is final.
+         * @description Admin sees drafts and submitted ones. A reviewer who holds this assessment's role on the team sees submitted ones only, once the team assessment is final; anyone else gets 403.
          */
         get: operations["listEvaluations"];
         put?: never;
@@ -937,6 +947,7 @@ export interface components {
             composition: components["schemas"]["Composition"];
         };
         TeamReviewersPut: {
+            /** @description More than 5 is accepted here and refused by the composition rules (422). */
             assignments: {
                 /** Format: uuid */
                 reviewerId: string;
@@ -1005,6 +1016,7 @@ export interface components {
         TeamPatch: {
             name?: string;
             projectTitle?: string;
+            /** @description An empty string clears it; null or absent leaves it unchanged. */
             description?: string | null;
         };
         TeamSummary: components["schemas"]["TeamRef"] & {
@@ -1379,6 +1391,7 @@ export interface components {
                  */
                 id?: string | null;
                 name: string;
+                /** @description Required, a whole number (33.5 or null is a 400) */
                 weight: number;
                 descriptions: components["schemas"]["LevelDescriptions"];
             }[];
@@ -1474,7 +1487,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description A business rule refused the change; `code` says which (e.g. `evaluation-submitted`, `team-name-taken`, `reviewer-has-submissions`, `nothing-to-release`) */
+        /** @description A business rule refused the change; `code` says which (e.g. `evaluation-submitted`, `evaluation-submitting`, `assessment-final`, `team-name-taken`, `reviewer-has-submissions`, `nothing-to-release`, `concurrent-change`) */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -1522,7 +1535,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description `service-unavailable`: a service behind the gateway is starting or down ("The demo is starting up, try again in a minute"). */
+        /** @description `service-unavailable`: a service behind the gateway is starting or down ("The demo is starting up, try again in a minute"). Also `demo-capacity` (too many demo copies today), `demo-copy-in-progress` (the copy is still being created; retry) and `too-many-streams` (live stream). */
         Unavailable: {
             headers: {
                 [name: string]: unknown;
@@ -2432,6 +2445,8 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            503: components["responses"]["Unavailable"];
         };
     };
     saveMyEvaluationDraft: {
@@ -2466,6 +2481,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
+            503: components["responses"]["Unavailable"];
         };
     };
     submitMyEvaluation: {
@@ -2499,6 +2515,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["CriteriaUnscored"];
             503: components["responses"]["Unavailable"];
         };
@@ -2530,6 +2547,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
         };
     };
     getEvaluationHistory: {
@@ -2607,6 +2625,7 @@ export interface operations {
                     "application/json": components["schemas"]["Rubric"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };

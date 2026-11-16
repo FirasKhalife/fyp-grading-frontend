@@ -46,6 +46,12 @@ export function resetBrowserDemoSessionId() {
   memoryId = null
 }
 
+/** Adopt the id the server handed back (a reset creates the fresh copy under a NEW id, contract 1.3.0). */
+export function setBrowserDemoSessionId(id: string) {
+  safeSet(SESSION_KEY, id)
+  memoryId = id
+}
+
 export function browserDemoSessionId(): string {
   let id = safeGet(SESSION_KEY) ?? memoryId
   if (!id) {

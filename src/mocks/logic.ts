@@ -548,7 +548,7 @@ export function saveDraft(state: DemoState, userId: string, teamId: string, key:
     const before = e.levels[cid] ?? null
     if (before === lvl) continue
     const c = view.rubric.criteria.find((x) => x.id === cid)
-    if (!c) throw new DemoError(400, 'Unknown criterion')
+    if (!c) throw new DemoError(409, 'The rubric changed: a criterion in this draft is no longer in it.', 'rubric-changed')
     e.levels[cid] = lvl
     const entry = { kind: 'LEVEL_CHANGED' as const, criterionId: cid, criterionName: c.name, from: before, to: lvl }
     log(entry)
@@ -691,6 +691,7 @@ export function updateTeam(state: DemoState, teamId: string, patch: { name?: str
     t.name = patch.name.trim()
   }
   if (patch.projectTitle !== undefined) t.projectTitle = patch.projectTitle.trim()
+  // An empty description clears it (contract 1.3.0).
   if (patch.description !== undefined) t.description = patch.description.trim()
 }
 

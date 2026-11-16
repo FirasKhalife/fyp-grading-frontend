@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useViewer } from '@/auth/AuthProvider'
 import type { AssessmentKey, Criterion, ReviewerRole } from '@/domain/types'
 import { apiUrl, authHeaders, notifyUnauthorized } from './client'
-import { repository as repo, type DraftState } from './repository'
+import { ApiError, repository as repo, type DraftState } from './repository'
 import type { GradingView } from './views'
 
 export const qk = {
@@ -91,6 +91,9 @@ export function useGrading(teamId: string, a: AssessmentKey, enabled = true) {
  * Autosave. Each save returns the evaluation, so the grading view is updated in place; only My teams
  * (draft counts) is refetched. Submit and release still refresh everything.
  */
+/** Conflicts that mean the page shows stale state: refetch so the screen matches the server. */
+const STALE_CODES = new Set(['assessment-final', 'rubric-changed', 'evaluation-submitted'])
+
 export function useSaveDraft(teamId: string, a: AssessmentKey) {
   const qc = useQueryClient()
   const { viewer } = useViewer()
@@ -102,12 +105,32 @@ export function useSaveDraft(teamId: string, a: AssessmentKey) {
       )
       void qc.invalidateQueries({ queryKey: qk.myTeams(viewer.userId) })
     },
+    onError: (e) => {
+      // Locked, being submitted elsewhere, or the rubric changed: reload the form from the server.
+      if (e instanceof ApiError && (STALE_CODES.has(e.code) || e.code === 'evaluation-submitting')) {
+        void qc.invalidateQueries({ queryKey: qk.grading(viewer.userId, teamId, a) })
+      }
+    },
   })
 }
 
 export function useSubmit(teamId: string, a: AssessmentKey) {
   const qc = useQueryClient()
-  return useMutation({ mutationFn: (d?: DraftState) => repo.submit(teamId, a, d), onSuccess: () => invalidateAll(qc) })
+  return useMutation({
+    mutationFn: async (d?: DraftState) => {
+      try {
+        return await repo.submit(teamId, a, d)
+      } catch (e) {
+        // 409 `evaluation-changed`: the draft moved under the submit. The body carries the full form, so one retry is safe.
+        if (e instanceof ApiError && e.code === 'evaluation-changed') return repo.submit(teamId, a, d)
+        throw e
+      }
+    },
+    onSuccess: () => invalidateAll(qc),
+    onError: (e) => {
+      if (e instanceof ApiError && STALE_CODES.has(e.code)) void invalidateAll(qc)
+    },
+  })
 }
 
 export function useOverview() {

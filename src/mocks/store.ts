@@ -112,10 +112,22 @@ export function mutate<T>(fn: (s: DemoState) => T): T {
   return out
 }
 
-export function resetCopy(): DemoState {
+/**
+ * "Reset my demo" (contract 1.3.0): delete this copy and create a fresh one under a NEW id, which the
+ * caller adopts. The old id then answers 404 `demo-session-not-found`.
+ */
+export function resetCopy(): { id: string; state: DemoState } {
+  safeRemove(COPY_PREFIX + demoSessionId())
+  const id = crypto.randomUUID()
+  activeId = id
+  memory = null
+  return { id, state: createCopy() }
+}
+
+/** The midnight purge, for tests: the current copy disappears. */
+export function purgeCopy() {
   safeRemove(COPY_PREFIX + demoSessionId())
   memory = null
-  return createCopy()
 }
 
 export function subscribe(fn: () => void): () => void {

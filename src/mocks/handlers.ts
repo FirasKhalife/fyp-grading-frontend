@@ -54,9 +54,13 @@ export function setMockLatency(ms: number) {
 /* ---------- problems ---------- */
 
 function problem(status: number, code: string, detail: string, extra: Record<string, unknown> = {}) {
+  // `retryAfter` travels as the Retry-After header (seconds), not in the body.
+  const { retryAfter, ...rest } = extra
+  const headers: Record<string, string> = { 'Content-Type': 'application/problem+json' }
+  if (typeof retryAfter === 'number') headers['Retry-After'] = String(retryAfter)
   return HttpResponse.json(
-    { type: `https://assay.dev/problems/${code}`, title: code.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()), status, code, detail, ...extra } as JsonBodyType,
-    { status, headers: { 'Content-Type': 'application/problem+json' } },
+    { type: `https://assay.dev/problems/${code}`, title: code.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()), status, code, detail, ...rest } as JsonBodyType,
+    { status, headers },
   )
 }
 
@@ -97,6 +101,30 @@ function sessionOf(request: Request): string {
   if (id !== store.demoSessionId()) store.selectSession(id)
   return id
 }
+
+/**
+ * The gateway's limit on creating or resetting a copy (contract 1.3.0): one a minute, ten in a burst,
+ * per client. Off under Vitest, where every test makes a copy; tests stub a 429 with `server.use`.
+ */
+export const copyLimit = (() => {
+  const burst = 10
+  const perMs = 60_000
+  let tokens = burst
+  let at = Date.now()
+  return {
+    take() {
+      if (import.meta.env.MODE === 'test') return
+      const t = Date.now()
+      tokens = Math.min(burst, tokens + (t - at) / perMs)
+      at = t
+      if (tokens < 1) {
+        const wait = Math.ceil(((1 - tokens) * perMs) / 1000)
+        throw new Problem(429, 'rate-limited', 'Too many demo copies created or reset from here. Wait a little.', { retryAfter: wait })
+      }
+      tokens -= 1
+    },
+  }
+})()
 
 function requireCopy() {
   if (!store.hasCopy()) throw new Problem(404, 'demo-session-not-found', 'Your demo copy was reset. Pick a role to start a fresh one.')
@@ -256,6 +284,7 @@ export const handlers = [
     route(
       () => {
         if (store.hasCopy()) return json(demoSessionDto(), 200)
+        copyLimit.take()
         store.createCopy()
         return json(demoSessionDto(), 201)
       },
@@ -266,7 +295,9 @@ export const handlers = [
     `${API}/demo/session/reset`,
     route(
       async () => {
+        copyLimit.take()
         await delay(latency ? 1200 : 0)
+        // The fresh copy gets a NEW id; demoSessionDto() reports it.
         store.resetCopy()
         return json(demoSessionDto())
       },
@@ -575,6 +606,15 @@ export const handlers = [
         requireAdmin(user)
         const b = (await body<S<'TeamPatch'>>(request)) ?? {}
         const id = String(params.teamId)
+        // Contract 1.3.0: an empty body, or a blank name or title, is a 400; an empty description clears it.
+        if (b.name === undefined && b.projectTitle === undefined && (b.description === undefined || b.description === null)) {
+          throw new Problem(400, 'validation-failed', 'Nothing to change.')
+        }
+        const errors = [
+          ...(b.name !== undefined && !b.name.trim() ? [{ field: 'name', message: 'must not be blank' }] : []),
+          ...(b.projectTitle !== undefined && !b.projectTitle.trim() ? [{ field: 'projectTitle', message: 'must not be blank' }] : []),
+        ]
+        if (errors.length) throw new Problem(400, 'validation-failed', 'Give the team a name and a project title.', { errors })
         store.mutate((s) => {
           if (b.name && s.teams.some((t) => t.id !== id && t.name.toLowerCase() === b.name!.trim().toLowerCase())) {
             throw new DemoError(409, `There is already a Team ${b.name.trim()}.`, 'team-name-taken')
@@ -698,6 +738,15 @@ export const handlers = [
             if (submitted && (!after || after.role !== m.role)) {
               const r = s.reviewers.find((x) => x.id === m.reviewerId)!
               throw new DemoError(409, `${r.firstName} ${r.lastName} has submitted evaluations for this team, so they stay on it with the same role.`, 'reviewer-has-submissions')
+            }
+          }
+          // Contract 1.3.0: a final team grade keeps its reviewers.
+          for (const a of ASSESSMENTS) {
+            if (logic.teamAssessment(s, id, a.key).grade === null) continue
+            const before = t.members.filter((m) => m.role === a.role).map((m) => m.reviewerId).sort().join()
+            const after = next.filter((x) => x.role === a.role).map((x) => x.reviewerId).sort().join()
+            if (before !== after) {
+              throw new Problem(409, 'assessment-final', `The ${a.name} grade for Team ${t.name} is already final, so its ${a.role === 'JURY' ? 'jury' : 'advisor'} can't change.`)
             }
           }
           const added = next.filter((a) => !t.members.some((m) => m.reviewerId === a.reviewerId))
@@ -886,6 +935,9 @@ export const handlers = [
         requireAdmin(user)
         const key = code(params.assessment)
         const b = await body<S<'RubricPut'>>(request)
+        const bad = (b?.criteria ?? []).flatMap((c, i) => (Number.isInteger(c.weight) ? [] : [{ field: `criteria[${i}].weight`, message: 'must be a whole number' }]))
+        if (bad.length) throw new Problem(400, 'validation-failed', 'Weights must be whole numbers.', { errors: bad })
+        if (!b?.criteria?.length) throw new Problem(422, 'rubric-empty', 'A rubric needs at least one criterion.')
         const criteria: Criterion[] = (b?.criteria ?? []).map((c) => ({
           id: c.id ?? '',
           name: c.name,
