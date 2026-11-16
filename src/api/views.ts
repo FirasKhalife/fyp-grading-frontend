@@ -131,7 +131,8 @@ export interface OverviewView {
   rows: GridRow[]
   releases: ReleaseCandidate[]
   releaseCounts: Record<string, number>
-  activity: Activity[]
+  /** null while the feed can't be loaded (notification-service down); the rest of the overview still shows. */
+  activity: Activity[] | null
   insights: Insights
 }
 

@@ -307,7 +307,11 @@ export const httpRepository = {
   async overview(): Promise<OverviewView> {
     const [o, act, reviewers] = await Promise.all([
       api.get<S<'Overview'>>('/api/overview'),
-      api.get<S<'ActivityPage'>>('/api/activity?size=12'),
+      // The feed comes from notification-service: if that is down, the grid still shows (found in integration).
+      api.get<S<'ActivityPage'>>('/api/activity?size=12').catch((e: unknown) => {
+        if (e instanceof ApiError && (e.status === 0 || e.status === 429 || e.status >= 500)) return null
+        throw e
+      }),
       api.get<S<'ReviewerPage'>>('/api/reviewers?size=100'),
     ])
     const rows: GridRow[] = o.teams.map((r) => {
@@ -363,7 +367,7 @@ export const httpRepository = {
       rows,
       releases: releases.filter((r) => r.pendingTeams.length > 0),
       releaseCounts: Object.fromEntries(o.assessments.map((a) => [a.code, a.releasedTeamCount])),
-      activity: act.content.map(activityOf),
+      activity: act ? act.content.map(activityOf) : null,
       insights: {
         threshold: o.insights.disagreementThreshold,
         distribution: o.insights.finalGradeDistribution,

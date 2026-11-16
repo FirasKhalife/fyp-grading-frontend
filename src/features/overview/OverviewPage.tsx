@@ -307,12 +307,18 @@ function ActivityFeed({ items }: { items: OverviewView['activity'] }) {
         <h2 id="feed-h" className="m-0 text-[16px] font-semibold">
           Activity
         </h2>
-        <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-green">
-          <span aria-hidden="true" className="size-2 rounded-full bg-green shadow-[0_0_0_3px_var(--green-soft)]" />
-          Live
-        </span>
+        {items && (
+          <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-green">
+            <span aria-hidden="true" className="size-2 rounded-full bg-green shadow-[0_0_0_3px_var(--green-soft)]" />
+            Live
+          </span>
+        )}
       </div>
-      {items.length ? (
+      {!items ? (
+        <p role="status" className="m-0 text-[14px] leading-[21px] text-muted">
+          The activity feed isn't available right now. The grid above is up to date, and the feed comes back on its own.
+        </p>
+      ) : items.length ? (
         <ul aria-live="polite" className="m-0 list-none p-0">
           {items.map((e, i) => (
             <li key={e.id} className={cn('grid grid-cols-[28px_1fr] gap-2.5 py-3', i > 0 && 'border-t border-line')}>

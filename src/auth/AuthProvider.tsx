@@ -61,7 +61,10 @@ async function ensureCopy(): Promise<void> {
   markCopyCreated()
 }
 
-/** With Keycloak: who the token belongs to, as a persona or a plain account. */
+/**
+ * With Keycloak: who the token belongs to, as a persona or a plain account. Call it once the copy
+ * exists: `/api/me` answers 404 `demo-session-not-found` without one.
+ */
 async function identityFromToken(): Promise<Persona | null> {
   const u = await currentUser()
   if (!u) return null
@@ -81,7 +84,7 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
   const [expired, setExpired] = useState(false)
   const [freshCopy, setFreshCopy] = useState(false)
   const qc = useQueryClient()
-  const recovering = useRef<Promise<void> | null>(null)
+  const recovering = useRef<Promise<boolean> | null>(null)
   const lastRecovery = useRef(0)
 
   // Layout effects run before any child's data effects, so the first query already carries the token.
@@ -100,7 +103,7 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
    * refetch everything and say so. Many queries fail at once, so one recovery serves them all. If the
    * new copy can't be made, or the copy vanishes again straight away, fall back to the landing page.
    */
-  const recover = useCallback(() => {
+  const recover = useCallback((): Promise<boolean> => {
     if (recovering.current) return recovering.current
     recovering.current = (async () => {
       wasPurged()
@@ -111,9 +114,11 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
         lastRecovery.current = Date.now()
         setFreshCopy(true)
         void qc.invalidateQueries()
+        return true
       } catch {
         markOvernightReset()
         forget()
+        return false
       } finally {
         recovering.current = null
       }
@@ -151,14 +156,13 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
         if (live) setReady(true)
         return
       }
-      let p = persona
+      const p = persona
       try {
-        if (oidcEnabled) {
-          p = await identityFromToken()
-          if (live) setPersona(p)
-        }
-        if (p) {
-          signedInAs = p
+        const signedIn = oidcEnabled ? (await currentUser()) !== null : p !== null
+        if (signedIn) {
+          if (p) signedInAs = p
+          // The copy first: every other call, /api/me included, needs it.
+          let haveCopy = true
           try {
             const s = await repository.demoSession()
             setSessionToday(s.today)
@@ -166,8 +170,12 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
           } catch (e) {
             if (!(e instanceof ApiError) || e.status !== 404) throw e
             // A 404 is the nightly purge only if this browser had a copy; a new browser just needs one.
-            if (wasPurged()) await recover()
+            if (wasPurged()) haveCopy = await recover()
             else await ensureCopy()
+          }
+          if (oidcEnabled && haveCopy) {
+            const who = await identityFromToken()
+            if (live) setPersona(who)
           }
         }
       } catch {
@@ -201,15 +209,16 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
 
   const completeEmailSignIn = useCallback(async () => {
     const { returnTo } = await completeSignIn()
-    const p = await identityFromToken()
-    if (!p) throw new Error('No user after sign-in')
-    signedInAs = p
+    // The copy before /api/me, which answers 404 without one (a brand-new browser has none yet).
     setCreating(true)
     try {
       await ensureCopy()
     } finally {
       setCreating(false)
     }
+    const p = await identityFromToken()
+    if (!p) throw new Error('No user after sign-in')
+    signedInAs = p
     setExpired(false)
     setPersona(p)
     return returnTo === '/home' ? p.home : returnTo
