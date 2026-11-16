@@ -20,7 +20,7 @@ export function LevelBars({ level, size = 'sm', className }: { level: Level; siz
       {s.h.map((h, i) => (
         <i
           key={i}
-          className={cn('block rounded-[1px]', i < level ? 'bg-current' : 'border-[1.5px] border-current opacity-60')}
+          className={cn('block rounded-[1px]', i < level ? 'bg-current' : 'border-[1.5px] border-current')}
           style={{ width: s.w, height: h }}
         />
       ))}

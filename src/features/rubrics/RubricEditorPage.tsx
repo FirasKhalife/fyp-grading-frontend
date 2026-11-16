@@ -8,7 +8,9 @@ import { LEVEL_NAMES } from '@/domain/levels'
 import type { AssessmentKey, Criterion, Level } from '@/domain/types'
 import { cn, joinNames } from '@/lib/cn'
 import { weightsTotal } from '@/lib/scoring'
+import { ApiError } from '@/api/repository'
 import { Icon } from '@/components/assay/Icon'
+import { LimitHint } from '@/components/assay/LimitHint'
 import { FILL, LevelBars } from '@/components/assay/LevelMark'
 import { Breadcrumb, Main, PageTitle, useTitle } from '@/components/assay/Page'
 import { ErrorState } from '@/components/assay/States'
@@ -24,9 +26,14 @@ interface Row {
   d: [string, string, string, string]
 }
 
+/** The contract's limits (RubricPut). */
+const CRITERIA_MAX = 20
+const NAME_MAX = 300
+const DESCRIPTION_MAX = 1000
+
 const field = 'min-h-11 w-full resize-y rounded-ctl border border-line2 bg-surface px-3 py-2.5 text-[15px] leading-[22px] text-ink'
 const iconBtn =
-  'inline-flex h-9 w-11 cursor-pointer items-center justify-center rounded-ctl border border-line bg-surface text-ink disabled:cursor-default disabled:opacity-40'
+  'inline-flex size-11 cursor-pointer items-center justify-center rounded-ctl border border-line bg-surface text-ink disabled:cursor-default disabled:opacity-40'
 
 /** P7 editor: add, remove, reorder criteria; names, weights, descriptions; must total 100 % to save. */
 export function RubricEditorPage() {
@@ -70,6 +77,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
     setDirtyState(v)
   }
   const [saved, setSaved] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<number, string[]>>({})
   const total = weightsTotal(rows.map((r) => r.weight))
   const ok = total === 100 && rows.every((r) => r.name.trim()) && rows.length > 0
   const diff = 100 - total
@@ -102,8 +110,20 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
       )
       setDirty(false)
       setSaved(true)
+      setFieldErrors({})
       toast.success(`${a.name} rubric saved. Reviewers see it right away.`)
     } catch (e) {
+      // Field errors ("criteria[2].weight") go next to the criterion they're about.
+      if (e instanceof ApiError && e.errors.length) {
+        const byRow: Record<number, string[]> = {}
+        for (const er of e.errors) {
+          const m = er.field.match(/^criteria\[(\d+)\]\.?(\w*)/)
+          const idx = m ? Number(m[1]) : -1
+          const what = m?.[2] ? `${m[2].replace(/^./, (x) => x.toUpperCase())} ${er.message}` : er.message
+          ;(byRow[idx] ??= []).push(what)
+        }
+        setFieldErrors(byRow)
+      }
       toast.error(e instanceof Error ? e.message : "The rubric didn't save.")
     }
   }
@@ -166,7 +186,21 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
                   <label htmlFor={`n-${r.k}`} className="text-[13px] font-semibold text-muted">
                     Criterion name
                   </label>
-                  <textarea id={`n-${r.k}`} rows={2} value={r.name} onChange={(e) => patch(i, { name: e.target.value })} className={cn(field, 'font-semibold')} />
+                  <textarea
+                    id={`n-${r.k}`}
+                    rows={2}
+                    value={r.name}
+                    maxLength={NAME_MAX}
+                    aria-describedby={`n-${r.k}-limit`}
+                    onChange={(e) => patch(i, { name: e.target.value })}
+                    className={cn(field, 'font-semibold')}
+                  />
+                  <LimitHint id={`n-${r.k}-limit`} value={r.name} max={NAME_MAX} />
+                  {(fieldErrors[i] ?? []).map((m) => (
+                    <p key={m} role="alert" className="m-0 text-[14px] font-semibold text-amber">
+                      {m}
+                    </p>
+                  ))}
                   <Button variant="quiet" className="self-start text-[14px]" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.k)}>
                     {isOpen ? 'Hide level descriptions' : 'Edit level descriptions'}
                   </Button>
@@ -212,6 +246,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
                           id={`d-${r.k}-${l}`}
                           rows={4}
                           value={r.d[l - 1]}
+                          maxLength={DESCRIPTION_MAX}
                           onChange={(e) => {
                             const d = [...r.d] as Row['d']
                             d[l - 1] = e.target.value
@@ -231,6 +266,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
         <div className="border-t border-line px-5 py-4">
           <Button
             variant="ghost"
+            disabled={rows.length >= CRITERIA_MAX}
             onClick={() => {
               const k = `new-${Date.now()}`
               update([...rows, { k, id: '', name: '', weight: 0, d: ['', '', '', ''] }])
@@ -241,6 +277,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
             <Icon name="plus" />
             Add criterion
           </Button>
+          {rows.length >= CRITERIA_MAX && <p className="m-0 mt-2 text-[13px] text-muted">A rubric holds at most {CRITERIA_MAX} criteria.</p>}
         </div>
       </Card>
       <div

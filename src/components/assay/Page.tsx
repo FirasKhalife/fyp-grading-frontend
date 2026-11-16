@@ -22,7 +22,7 @@ export function Breadcrumb({ items }: { items: { label: string; to?: string }[] 
             )}
             {it.to ? (
               <li>
-                <Link to={it.to} className="inline-flex min-h-8 items-center">
+                <Link to={it.to} className="inline-flex min-h-11 items-center">
                   {it.label}
                 </Link>
               </li>

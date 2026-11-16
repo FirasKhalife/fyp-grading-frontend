@@ -646,7 +646,8 @@ export interface paths {
          *     Criteria keep their `id` when sent with one; criteria without an id are new; missing ones are removed.
          *     1-20 criteria, names up to 300 characters, a description for each of levels 1-4.
          *     Evaluations already started keep their own snapshot, so editing never changes a submitted score.
-         *     `submittedEvaluations` in the response lets the UI show the warning before saving.
+         *     For the "evaluations were already submitted" warning, use the `submittedCount` of this assessment's
+         *     cells in `GET /api/overview`.
          */
         put: operations["replaceRubric"];
         post?: never;
@@ -1051,7 +1052,10 @@ export interface components {
         ReviewerProgress: {
             reviewer: components["schemas"]["Person"];
             status: components["schemas"]["EvaluationStatus"];
+            /** @description Not submitted and past the due date */
             overdue: boolean;
+            /** @description Submitted after the due date */
+            submittedLate: boolean;
             /** @description Submitted score */
             score?: components["schemas"]["Score"] | null;
             /** Format: date-time */
@@ -1087,7 +1091,10 @@ export interface components {
             /** Format: date-time */
             dueAt: string;
             status: components["schemas"]["EvaluationStatus"];
+            /** @description Not submitted and past the due date */
             overdue: boolean;
+            /** @description Submitted after the due date */
+            submittedLate: boolean;
             /** @description My submitted score */
             score?: components["schemas"]["Score"] | null;
             /** @description Criteria scored so far (drafts) */
@@ -1262,7 +1269,10 @@ export interface components {
             criteriaCount: number;
             /** Format: date-time */
             dueAt?: string | null;
+            /** @description Not submitted and past the due date */
             overdue: boolean;
+            /** @description Submitted after the due date (shown as overdue on a submitted evaluation) */
+            submittedLate: boolean;
             /** Format: date-time */
             createdAt?: string | null;
             /** Format: date-time */

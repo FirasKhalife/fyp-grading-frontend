@@ -223,7 +223,8 @@ function AssessmentRow({ a, i, teamName }: { a: Row; i: number; teamName: string
             {a.reviewers.map((r) => (
               <StatusChip key={r.reviewer.id} kind={r.state === 'DRAFT' ? 'draft' : 'plain'} icon={r.state === 'DRAFT' ? 'pencil' : null}>
                 {r.reviewer.name}{' '}
-                <span className="mono font-semibold">{r.state === 'SUBMITTED' && r.score !== null ? formatScore(r.score) : r.state === 'DRAFT' ? 'draft' : '—'}</span>
+                <span className="mono font-semibold">{r.state === 'SUBMITTED' ? (r.score !== null ? formatScore(r.score) : 'submitted') : r.state === 'DRAFT' ? 'draft' : '—'}</span>
+                {r.submittedLate && <span className="font-medium"> · late</span>}
               </StatusChip>
             ))}
           </div>

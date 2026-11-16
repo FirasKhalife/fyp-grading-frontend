@@ -93,7 +93,7 @@ export function SchedulePage() {
                       aria-pressed={view === k}
                       onClick={() => setView(k)}
                       className={cn(
-                        'min-h-11 cursor-pointer rounded-[8px] border-0 bg-transparent px-3.5 text-[14px] font-medium text-ink2 md:min-h-9',
+                        'min-h-11 cursor-pointer rounded-[8px] border-0 bg-transparent px-3.5 text-[14px] font-medium text-ink2',
                         view === k && 'bg-surface font-semibold text-ink shadow-[0_1px_2px_rgba(0,0,0,0.12)]',
                       )}
                     >
@@ -311,7 +311,7 @@ function AddSlot({ data }: { data: ScheduleView }) {
 }
 
 /** Finds the first start time that day where the moved team's jury and room are free. */
-function proposeFix(data: ScheduleView, c: Conflict): { team: Team; start: string } | null {
+function proposeFix(data: ScheduleView, c: Conflict): { team: Team; start: string; room: string } | null {
   const [, b] = c.teams
   const team = b!
   const slot = data.slots.find((s) => s.team.id === team.id)!
@@ -324,10 +324,13 @@ function proposeFix(data: ScheduleView, c: Conflict): { team: Team; start: strin
       (o) =>
         o.team.id !== team.id &&
         o.slot.start.slice(0, 10) === day &&
-        Math.abs(hourOf(o.slot.start) - h) < o.slot.minutes / 60 &&
-        (o.slot.room === slot.slot.room || o.jury.some((j) => jury.includes(j.id))),
+        (o.slot.room === slot.slot.room
+          ? Math.abs(hourOf(o.slot.start) - h) < o.slot.minutes / 60
+          : // A shared jury member gets a full hour between their two defenses.
+            o.jury.some((j) => jury.includes(j.id)) && Math.abs(hourOf(o.slot.start) - h) < 2),
     )
-    if (!clash && hourOf(start) > hourOf(slot.slot.start)) return { team, start }
+    // Same room: the fix only moves the time, as the banner says.
+    if (!clash && hourOf(start) > hourOf(slot.slot.start)) return { team, start, room: slot.slot.room }
   }
   return null
 }
@@ -364,7 +367,10 @@ function ConflictBanner({ data }: { data: ScheduleView }) {
           variant="ghost"
           disabled={move.isPending}
           onClick={() =>
-            void move.mutateAsync({ teamId: fix.team.id, start: fix.start }).then(() => setFixed(`Team ${fix.team.name} moved to ${fmtTime(fix.start)}.`))
+            void move.mutateAsync({ teamId: fix.team.id, start: fix.start, room: fix.room }).then(
+              () => setFixed(`Team ${fix.team.name} moved to ${fmtTime(fix.start)}, still in ${fix.room}.`),
+              (e: unknown) => toast.error(e instanceof Error ? e.message : "The slot didn't move. Try again."),
+            )
           }
         >
           Move Team {fix.team.name} to {fmtTime(fix.start)}

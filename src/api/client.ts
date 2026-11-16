@@ -31,6 +31,22 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
   onUnauthorized = fn
 }
 
+/** For callers outside `request` (the live stream) that see a 401. */
+export function notifyUnauthorized() {
+  onUnauthorized?.()
+}
+
+/**
+ * App-wide reactions to a few problem codes, kept apart from per-screen errors:
+ * 404 `demo-session-not-found` (the copy was purged while the tab was open) and
+ * 400 `demo-session-required` (the stored session id is unusable).
+ */
+type ProblemHandler = (e: ApiError) => void
+let onSessionProblem: ProblemHandler | null = null
+export function setSessionProblemHandler(fn: ProblemHandler | null) {
+  onSessionProblem = fn
+}
+
 export async function authHeaders(): Promise<Record<string, string>> {
   const token = await tokenProvider()
   return {
@@ -56,7 +72,12 @@ export async function request<T>(method: string, path: string, body?: unknown, o
   try {
     res = await fetch(apiUrl(path), {
       method,
-      headers: { ...(await authHeaders()), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), Accept: 'application/json' },
+      headers: {
+        ...(await authHeaders()),
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        // Raw calls are the CSV export, which the server only produces as text/csv.
+        Accept: opts.raw ? 'text/csv, */*;q=0.1' : 'application/json',
+      },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
   } catch {
@@ -69,8 +90,11 @@ export async function request<T>(method: string, path: string, body?: unknown, o
     } catch {
       /* not a problem document */
     }
+    const err = new ApiError(res.status, p.detail ?? FALLBACK[res.status] ?? p.title ?? 'Something went wrong.', p.code ?? String(res.status), p.errors ?? [], p)
     if (res.status === 401) onUnauthorized?.()
-    throw new ApiError(res.status, p.detail ?? FALLBACK[res.status] ?? p.title ?? 'Something went wrong.', p.code ?? String(res.status), p.errors ?? [], p)
+    // The session endpoints handle their own 404; anywhere else it means the copy vanished mid-visit.
+    else if ((err.code === 'demo-session-not-found' && !path.startsWith('/api/demo/session')) || err.code === 'demo-session-required') onSessionProblem?.(err)
+    throw err
   }
   if (opts.raw) return (await res.text()) as T
   if (res.status === 204) return undefined as T

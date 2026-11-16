@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { completeSignIn, oidcEnabled } from '@/auth/oidc'
+import { useAuth } from '@/auth/AuthProvider'
+import { oidcEnabled } from '@/auth/oidc'
 import { ErrorState } from '@/components/assay/States'
 import { Main } from '@/components/assay/Page'
 import { Button } from '@/components/ui/button'
@@ -8,16 +9,21 @@ import { Button } from '@/components/ui/button'
 /** OIDC redirect target: finishes the PKCE exchange, then goes where the persona card pointed. */
 export function AuthCallbackPage() {
   const navigate = useNavigate()
+  const { completeEmailSignIn } = useAuth()
   const [failed, setFailed] = useState(false)
+  const started = useRef(false)
   useEffect(() => {
     if (!oidcEnabled) {
       navigate('/', { replace: true })
       return
     }
-    completeSignIn()
-      .then(({ returnTo }) => window.location.replace(returnTo))
+    // The code can only be exchanged once (StrictMode runs effects twice in development).
+    if (started.current) return
+    started.current = true
+    completeEmailSignIn()
+      .then((to) => navigate(to, { replace: true }))
       .catch(() => setFailed(true))
-  }, [navigate])
+  }, [navigate, completeEmailSignIn])
   return (
     <Main>
       {failed ? (

@@ -18,7 +18,7 @@ import type {
 } from '@/domain/types'
 import { now, parseLocal } from '@/lib/demo-clock'
 import { parisToUtc, utcToParis } from '@/lib/tz'
-import { api } from './client'
+import { api, ApiError } from './client'
 import type { components } from './schema'
 import type {
   CompositionCheck,
@@ -186,6 +186,7 @@ function teamAssessmentOf(t: S<'TeamAssessment'>, evaluations: Evaluation[] = []
     return {
       reviewer: ref(r.reviewer),
       state: evalState(r.status),
+      submittedLate: r.submittedLate ?? false,
       score: r.status === 'SUBMITTED' ? (r.score ?? null) : r.evaluationId ? (draftScores[r.evaluationId] ?? null) : null,
       evaluation: e,
     }
@@ -227,6 +228,7 @@ export const httpRepository = {
         assessment: assessmentOf(k.assessment, k.dueAt, k.weight, t.role),
         state: evalState(k.status),
         overdue: k.overdue,
+        submittedLate: k.submittedLate ?? false,
         score: k.status === 'SUBMITTED' ? (k.score ?? null) : null,
         scored: k.scoredCount ?? 0,
         total: k.criteriaCount,
@@ -276,6 +278,8 @@ export const httpRepository = {
       evaluation: evaluationOf(e),
       role: ta.reviewerRole,
       peers,
+      overdue: e.overdue,
+      submittedLate: e.submittedLate ?? false,
     }
   },
 
@@ -340,6 +344,8 @@ export const httpRepository = {
         finals: { count: o.kpis.finalGradesComputed, names: finals.map((r) => r.team.name) },
         released: o.kpis.resultsReleased,
         releasable: o.kpis.teamCount * o.assessments.length,
+        readyToRelease: o.kpis.resultsReleasable,
+        teamCount: o.kpis.teamCount,
         average: o.kpis.averageFinalGrade ?? null,
       },
       rows,
@@ -490,10 +496,10 @@ export const httpRepository = {
     await api.patch<S<'Assessment'>>(`/api/assessments/${a}`, { dueAt: parisToUtc(`${isoDate}T23:59:00`) } satisfies S<'AssessmentPatch'>)
   },
 
-  async moveDefense(teamId: string, start: string, room?: string): Promise<void> {
+  async moveDefense(teamId: string, start: string, room: string): Promise<void> {
     await api.put<S<'DefenseSlot'>>(`/api/teams/${teamId}/defense-slot`, {
       startsAt: parisToUtc(start),
-      room: room ?? 'Amphi A',
+      room,
       durationMinutes: 40,
     } satisfies S<'DefenseSlotPut'>)
   },
@@ -519,7 +525,15 @@ export const httpRepository = {
   async studentHome(): Promise<StudentHomeView> {
     const h = await api.get<S<'StudentHome'>>('/api/me/team')
     const released = h.timeline.filter((x) => x.released)
-    const details = await Promise.all(released.map((x) => api.get<S<'ReleasedResults'>>(`/api/me/team/results/${x.assessment}`).catch(() => null)))
+    // Only "not released yet" means no details; any other failure is a real error for the screen to show.
+    const details = await Promise.all(
+      released.map((x) =>
+        api.get<S<'ReleasedResults'>>(`/api/me/team/results/${x.assessment}`).catch((e: unknown) => {
+          if (e instanceof ApiError && e.status === 404 && e.code === 'results-not-released') return null
+          throw e
+        }),
+      ),
+    )
     const team = teamOf(h.team, h.reviewers, h.defenseSlot)
     const reviewersById = new Map(h.reviewers.map((r) => [r.reviewer.id, ref(r.reviewer)]))
     const defended = team.defense ? parseLocal(team.defense.start) <= now() : false

@@ -19,7 +19,7 @@ const STEP_FILL = ['bg-l4 text-l4i', 'bg-l3 text-l3i', 'bg-l2 text-l2i']
 /** P1: explain the product in one sentence and enter as a persona in one click. */
 export function LandingPage() {
   useTitle('')
-  const { enterAs, creating } = useAuth()
+  const { enterAs, creating, signInWithEmail } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, toggle } = useTheme()
@@ -33,7 +33,8 @@ export function LandingPage() {
     setError(false)
     try {
       const p = await enterAs(id)
-      if (!oidcEnabled) navigate(from && canVisit(p, from) ? from : p.home)
+      // The persona sign-in is a password grant, not a redirect, so navigate in both modes.
+      navigate(from && canVisit(p, from) ? from : p.home)
     } catch {
       setError(true)
     } finally {
@@ -63,6 +64,15 @@ export function LandingPage() {
               <Icon name="code" />
               How it's built
             </a>
+            {oidcEnabled && (
+              <button
+                type="button"
+                onClick={() => void signInWithEmail().catch(() => setError(true))}
+                className="inline-flex min-h-11 cursor-pointer items-center rounded-ctl border border-line bg-surface px-4 text-[15px] font-semibold text-ink hover:border-pri"
+              >
+                Sign in with email
+              </button>
+            )}
             <button
               type="button"
               onClick={toggle}

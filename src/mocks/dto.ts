@@ -15,6 +15,9 @@ const utc = (wall: string | null | undefined) => (wall ? parisToUtc(wall) : null
 const r1 = (n: number) => Math.round((n + Number.EPSILON) * 10) / 10
 const score = (n: number | null | undefined) => (n === null || n === undefined ? null : r1(n))
 
+/** Submitted after the end of the due date (Paris wall-clock strings compare as text). */
+export const lateFor = (submittedAt: string | null | undefined, dueDate: string) => !!submittedAt && submittedAt.slice(0, 10) > dueDate
+
 /** Due dates are dates in the app; the contract carries the end of that day in Paris. */
 export const dueInstant = (isoDate: string) => parisToUtc(`${isoDate}T23:59:00`)
 
@@ -115,6 +118,7 @@ export function teamAssessmentDto(state: DemoState, teamId: string, key: Assessm
       reviewer: person(reviewerById(state, x.reviewer.id)),
       status: x.state,
       overdue: x.state !== 'SUBMITTED' && i.overdue,
+      submittedLate: lateFor(x.evaluation?.submittedAt, i.assessment.due),
       score: revealScores && x.state === 'SUBMITTED' ? score(x.score) : null,
       submittedAt: utc(x.evaluation?.submittedAt),
       evaluationId: x.evaluation?.id ?? null,
@@ -197,6 +201,7 @@ export function evaluationDto(state: DemoState, teamId: string, key: AssessmentK
     criteriaCount: r.criteria.length,
     dueAt: dueInstant(a.due),
     overdue: e?.status !== 'SUBMITTED' && teamAssessment(state, teamId, key).overdue,
+    submittedLate: lateFor(e?.submittedAt, a.due),
     createdAt: utc(e?.history[0]?.at ?? e?.updatedAt),
     updatedAt: utc(e?.updatedAt),
     submittedAt: utc(e?.submittedAt),

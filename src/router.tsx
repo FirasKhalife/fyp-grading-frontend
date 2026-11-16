@@ -19,10 +19,10 @@ const TeamDetailPage = lazy(() => import('@/features/team-detail/TeamDetailPage'
 const TeamsPage = lazy(() => import('@/features/teams/TeamsPage').then((m) => ({ default: m.TeamsPage })))
 
 function RequireAuth() {
-  const { persona, ready } = useAuth()
+  const { persona, ready, expired } = useAuth()
   const location = useLocation()
   if (!ready) return null
-  if (!persona) return <Navigate to="/" replace state={{ from: location.pathname }} />
+  if (!persona) return <Navigate to={expired ? '/session-expired' : '/'} replace state={{ from: location.pathname }} />
   return <Outlet />
 }
 
@@ -38,7 +38,7 @@ function Home() {
   return persona ? <Navigate to={persona.home} replace /> : <LandingPage />
 }
 
-const reviewers: PersonaRole[] = ['JURY', 'ADVISOR', 'COORDINATOR']
+const reviewers: PersonaRole[] = ['JURY', 'ADVISOR', 'REVIEWER', 'COORDINATOR']
 const admin: PersonaRole[] = ['COORDINATOR']
 
 export const routes: RouteObject[] = [
@@ -46,6 +46,7 @@ export const routes: RouteObject[] = [
   { path: '/roles', element: <LandingPage /> },
   { path: '/home', element: <Home /> },
   { path: '/auth/callback', element: <AuthCallbackPage /> },
+  { path: '/session-expired', element: <SessionExpiredPage /> },
   {
     element: <RequireAuth />,
     errorElement: <CrashPage />,
@@ -64,7 +65,6 @@ export const routes: RouteObject[] = [
           { path: '/rubrics/:assessment/edit', element: <RequireRole roles={admin} audience="admin"><RubricEditorPage /></RequireRole> },
           { path: '/schedule', element: <SchedulePage /> },
           { path: '/student', element: <RequireRole roles={['STUDENT']} audience="student"><StudentHomePage /></RequireRole> },
-          { path: '/session-expired', element: <SessionExpiredPage /> },
           { path: '/resetting', element: <ResetInProgressPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
