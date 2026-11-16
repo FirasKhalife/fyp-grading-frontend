@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { enterAs, expectAccessible } from './helpers'
+import { enterAs, expectAccessible, seedPath } from './helpers'
 
 async function noHorizontalScroll(page: Page) {
   const w = await page.evaluate(() => document.documentElement.scrollWidth)
@@ -23,7 +23,7 @@ test('My teams at 375 px', async ({ page }) => {
 
 test('grading at 375 px: stacked levels and a sticky score bar', async ({ page }) => {
   await enterAs(page, 'Jane')
-  await page.goto('/grade/t-beta/final-report')
+  await page.goto(await seedPath(page, '/grade/t-beta/final-report'))
   const bar = page.getByRole('region', { name: 'Score and submission' })
   await expect(bar).toBeVisible()
   await expect(bar).toContainText('53.8')
@@ -49,6 +49,6 @@ test('student home at 375 px with a vertical timeline', async ({ page }) => {
 
 test('the coordinator grid scrolls inside its card at 375 px', async ({ page }) => {
   await enterAs(page, 'Rania')
-  await expect(page.getByRole('table')).toBeVisible()
+  await expect(page.getByRole('table', { name: /Each cell is the team's grade/ })).toBeVisible()
   await noHorizontalScroll(page)
 })

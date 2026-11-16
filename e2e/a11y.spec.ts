@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { enterAs, expectAccessible, setTheme, type PersonaName } from './helpers'
+import { enterAs, expectAccessible, seedPath, setTheme, type PersonaName } from './helpers'
 
 const PAGES: [PersonaName, string, string][] = [
   ['Jane', '/my-teams', 'My teams'],
@@ -27,7 +27,7 @@ for (const theme of ['light', 'dark'] as const) {
     for (const [who, path, h1] of PAGES) {
       test(`${who} ${path}`, async ({ page }) => {
         await enterAs(page, who)
-        await page.goto(path)
+        await page.goto(await seedPath(page, path))
         await setTheme(page, theme)
         await expect(page.getByRole('heading', { level: 1, name: h1 })).toBeVisible()
         await expectAccessible(page, `${path} ${theme}`)

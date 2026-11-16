@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test'
-import { enterAs, focusRing, tabUntil } from './helpers'
+import { enterAs, focusRing, seedPath, tabUntil } from './helpers'
 
 test('keyboard only: Jane finishes and submits her Beta final report', async ({ page }) => {
   test.setTimeout(120_000)
   await enterAs(page, 'Jane')
   await page.goto('/my-teams')
-  await tabUntil(page, 'a[href="/grade/t-beta/final-report"]')
+  await tabUntil(page, `a[href="${await seedPath(page, '/grade/t-beta/final-report')}"]`)
   expect(await focusRing(page)).toBe('solid 3px')
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'Final report · Team Beta' })).toBeVisible()
@@ -33,7 +33,7 @@ test('keyboard only: Jane finishes and submits her Beta final report', async ({ 
 
 test('keyboard only: the coordinator grid is one tab stop with arrow-key movement', async ({ page }) => {
   await enterAs(page, 'Rania')
-  await expect(page.getByRole('table')).toBeVisible()
+  await expect(page.getByRole('table', { name: /Each cell is the team's grade/ })).toBeVisible()
   await tabUntil(page, 'table a')
   await expect(page.locator(':focus')).toHaveAccessibleName(/Team Alpha/)
   await page.keyboard.press('ArrowRight')
