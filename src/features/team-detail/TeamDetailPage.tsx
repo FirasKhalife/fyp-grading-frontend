@@ -342,7 +342,7 @@ function Spread({ a }: { a: Row }) {
         {subs.map((r) => (
           <span
             key={r.reviewer.id}
-            className={cn('absolute top-3 -ml-2.5 flex size-5 items-center justify-center rounded-full border-2 border-surface text-[9px] font-bold', FILL[bandOf(r.score!)])}
+            className={cn('absolute top-3 -ml-2.5 flex size-5 items-center justify-center rounded-full border-2 border-surface text-[9px] font-semibold', FILL[bandOf(r.score!)])}
             style={{ left: `${r.score}%` }}
           >
             {r.reviewer.initials}
