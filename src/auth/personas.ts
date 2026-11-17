@@ -1,8 +1,8 @@
 import type { PersonaRole } from '@/domain/types'
 
-export type PersonaId = 'rania' | 'jane' | 'karim' | 'nour'
+export type PersonaId = 'rania' | 'jane' | 'karim' | 'nour' | 'ahmad'
 
-/** An identity: one of the four personas, or anyone else signed in with email (`id: 'account'`). */
+/** An identity: one of the demo personas, or anyone else signed in with email (`id: 'account'`). */
 
 export interface Persona {
   id: PersonaId | 'account'
@@ -21,7 +21,10 @@ export interface Persona {
   switcherNote: string
 }
 
-/** The four demo personas (each has a fixed id). */
+/**
+ * The demo personas (each has a fixed id). P1 shows four cards: the Student card offers both students, Nour
+ * (every result released) and Ahmad (waiting on results). The role switcher lists all five.
+ */
 export type DemoPersona = Persona & { id: PersonaId }
 
 export const PERSONAS: DemoPersona[] = [
@@ -83,8 +86,28 @@ export const PERSONAS: DemoPersona[] = [
     pitch: 'Team Alpha, Smart irrigation controller. All five results are released.',
     tries: ['See how the 88.0 final grade was built', "Read the reviewers' comments per criterion", "Find your team's defense slot"],
     landingNote: 'Opens the student home',
-    switcherNote: 'Student, Team Alpha · home',
+    switcherNote: 'Student, Team Alpha · all results out',
   },
+  {
+    id: 'ahmad',
+    userId: 's-ahmad',
+    username: 'ahmad.fares',
+    firstName: 'Ahmad',
+    lastName: 'Fares',
+    role: 'STUDENT',
+    roleLabel: 'Student',
+    home: '/student',
+    pitch: 'Team Beta, Clinic queue management. Two results are out; the rest wait for the jury and the coordinator.',
+    tries: ['See what a student sees before results are released', 'Check which assessments are still pending', "Find tomorrow's defense slot"],
+    landingNote: 'Opens the student home',
+    switcherNote: 'Student, Team Beta · waiting on results',
+  },
+]
+
+/** The two students offered on P1's Student card, with the choice's label. */
+export const STUDENT_CHOICES: { id: PersonaId; label: string }[] = [
+  { id: 'nour', label: 'Nour · Alpha · all results out' },
+  { id: 'ahmad', label: 'Ahmad · Beta · waiting on results' },
 ]
 
 export function personaById(id: string | null | undefined): DemoPersona | null {
@@ -109,6 +132,7 @@ export const AVATAR_CLASS: Record<PersonaId | 'account', string> = {
   jane: 'bg-l3 text-l3i',
   karim: 'bg-l2 text-l2i',
   nour: 'bg-l1 text-l1i',
+  ahmad: 'border border-line2 bg-raised text-ink',
   account: 'bg-raised text-ink',
 }
 

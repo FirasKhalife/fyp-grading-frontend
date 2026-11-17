@@ -191,7 +191,12 @@ export function untilParisMidnight(at: Date = realNow()): string {
   return lh > 0 ? `${lh} h ${lm} min` : `${lm} min`
 }
 
-/** The academic year the demo runs in (the spring semester that holds "today"). */
-export function sessionYear(): number {
-  return now().getFullYear()
+/**
+ * The term that holds "today" (defense day 2), e.g. "Fall 2026": the dates move with the real date, so the
+ * label does too. January to June is Spring, July and August Summer, September to December Fall.
+ */
+export function sessionLabel(at: Date = now()): string {
+  const m = at.getMonth()
+  const term = m <= 5 ? 'Spring' : m <= 7 ? 'Summer' : 'Fall'
+  return `${term} ${at.getFullYear()}`
 }

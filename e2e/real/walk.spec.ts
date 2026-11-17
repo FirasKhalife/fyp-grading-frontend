@@ -42,6 +42,7 @@ const PLAN: Record<Who, { start: string; discover: { from: string; pattern: RegE
     fixed: ['/rubrics', '/schedule'],
   },
   Nour: { start: '/student', discover: [], fixed: [] },
+  Ahmad: { start: '/student', discover: [], fixed: ['/schedule'] },
 }
 
 for (const who of Object.keys(PLAN) as Who[]) {

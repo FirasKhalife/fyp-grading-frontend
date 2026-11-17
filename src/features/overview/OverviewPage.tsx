@@ -8,7 +8,7 @@ import { ASSESSMENTS } from '@/domain/assessments'
 import { bandOf } from '@/domain/levels'
 import type { ActivityKind, Assessment, AssessmentKey } from '@/domain/types'
 import { cn, joinNames } from '@/lib/cn'
-import { fmtLong, fmtStamp, isoDay, sessionYear } from '@/lib/demo-clock'
+import { fmtLong, fmtStamp, isoDay, sessionLabel } from '@/lib/demo-clock'
 import { formatScore } from '@/lib/scoring'
 import { Glyph } from '@/components/assay/Wordmark'
 import { Icon, type IconName } from '@/components/assay/Icon'
@@ -49,7 +49,7 @@ function Header({ data }: { data?: OverviewView }) {
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-1">
         <span className="mono text-[13px] text-muted">
-          Spring {sessionYear()} session{data ? ` · ${data.teamCount} teams · ${data.reviewerCount} reviewers` : ''}
+          {sessionLabel()} session{data ? ` · ${data.teamCount} teams · ${data.reviewerCount} reviewers` : ''}
         </span>
         <PageTitle>Overview</PageTitle>
         <p className="m-0 text-ink2">

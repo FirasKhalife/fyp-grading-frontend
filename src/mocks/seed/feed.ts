@@ -64,4 +64,9 @@ export const NOTIFICATIONS: Record<string, NotificationSpec[]> = {
     { kind: 'release', text: 'Your Advisor assessment results are available.', at: [-4, '09:00'], href: '/student', read: true },
     { kind: 'schedule', text: 'Your defense is scheduled: {defense:t-alpha}, Amphi A.', at: [-30, '10:00'], href: '/schedule', read: true },
   ],
+  's-ahmad': [
+    { kind: 'schedule', text: 'Your defense is confirmed: {defense:t-beta}, Amphi A.', at: [0, '09:40'], href: '/schedule', read: false },
+    { kind: 'release', text: 'Your Progress report results are available.', at: [-63, '10:00'], href: '/student', read: true },
+    { kind: 'release', text: 'Your Proposal presentation results are available.', at: [-99, '10:00'], href: '/student', read: true },
+  ],
 }

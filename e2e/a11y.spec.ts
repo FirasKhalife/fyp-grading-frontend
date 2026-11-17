@@ -13,6 +13,7 @@ const PAGES: [PersonaName, string, string][] = [
   ['Rania', '/rubrics/final-presentation/edit', 'Edit rubric · Final presentation'],
   ['Rania', '/schedule', 'Schedule'],
   ['Nour', '/student', 'Team Alpha'],
+  ['Ahmad', '/student', 'Team Beta'],
 ]
 
 for (const theme of ['light', 'dark'] as const) {

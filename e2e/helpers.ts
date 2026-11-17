@@ -2,13 +2,15 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page } from '@playwright/test'
 import { teamId } from './real/real'
 
-export type PersonaName = 'Rania' | 'Jane' | 'Karim' | 'Nour'
+export type PersonaName = 'Rania' | 'Jane' | 'Karim' | 'Nour' | 'Ahmad'
 
 /** Fresh browser storage, then one click on the persona card, as a visitor would. */
 export async function enterAs(page: Page, who: PersonaName) {
   await page.goto('/')
   await page.evaluate(() => localStorage.clear())
   await page.goto('/')
+  // Ahmad shares the Student card with Nour: pick him first.
+  if (who === 'Ahmad') await page.getByRole('radio', { name: 'Ahmad · Beta · waiting on results' }).check()
   await page.getByRole('button', { name: `Enter as ${who}` }).click()
   await expect(page.getByRole('region', { name: 'Demo' })).toBeVisible()
   // The real stack is slower than the mocks: let the first screen finish loading.

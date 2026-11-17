@@ -15,6 +15,7 @@ import { FILL, LevelMark, ScoreChip } from '@/components/assay/LevelMark'
 import { Breadcrumb, Main, PageTitle, useTitle } from '@/components/assay/Page'
 import { ErrorState } from '@/components/assay/States'
 import { StatusChip } from '@/components/assay/StatusChip'
+import { personaByUsername } from '@/auth/personas'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
 import { auditText } from '@/domain/audit'
@@ -491,19 +492,24 @@ function StudentsCard({ v }: { v: TeamDetailView }) {
                 <span className="truncate text-[13px] text-muted">{s.email}</span>
               </span>
             </span>
-            <button
-              type="button"
-              aria-label={`Remove ${s.firstName} ${s.lastName} from Team ${v.team.name}`}
-              onClick={() =>
-                ops.mutateAsync({ op: 'removeStudent', teamId: v.team.id, studentId: s.id }).then(
-                  () => toast.success(`${s.firstName} ${s.lastName} removed.`),
-                  (x: unknown) => toast.error(x instanceof Error ? x.message : 'Could not remove.'),
-                )
-              }
-              className="flex size-11 flex-none cursor-pointer items-center justify-center rounded-ctl border-0 bg-transparent text-muted hover:bg-raised hover:text-ink"
-            >
-              <Icon name="x" />
-            </button>
+            {personaByUsername(s.email.split('@')[0]) ? (
+              // The student personas always keep their team (409 `student-is-demo-persona`): no remove button.
+              <StatusChip kind="plain">Demo persona</StatusChip>
+            ) : (
+              <button
+                type="button"
+                aria-label={`Remove ${s.firstName} ${s.lastName} from Team ${v.team.name}`}
+                onClick={() =>
+                  ops.mutateAsync({ op: 'removeStudent', teamId: v.team.id, studentId: s.id }).then(
+                    () => toast.success(`${s.firstName} ${s.lastName} removed.`),
+                    (x: unknown) => toast.error(x instanceof Error ? x.message : 'Could not remove.'),
+                  )
+                }
+                className="flex size-11 flex-none cursor-pointer items-center justify-center rounded-ctl border-0 bg-transparent text-muted hover:bg-raised hover:text-ink"
+              >
+                <Icon name="x" />
+              </button>
+            )}
           </li>
         ))}
         {v.students.length === 0 && <li className="py-2 text-[14px] text-muted">No students yet.</li>}

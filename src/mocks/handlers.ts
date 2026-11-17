@@ -276,6 +276,7 @@ export const handlers = [
       p('jury', 'jane.smith', 'Jane Smith', 'Jury member', ['REVIEWER'], ['Finish the Team Beta final report draft', "Grade Team Epsilon's final presentation"]),
       p('advisor', 'karim.nassar', 'Karim Nassar', 'Advisor', ['REVIEWER'], ['Submit the overdue advisor assessment for Team Delta']),
       p('student', 'nour.khoury', 'Nour Khoury', 'Student', ['STUDENT'], ["Read the jury's comments on your final presentation"]),
+      p('student-waiting', 'ahmad.fares', 'Ahmad Fares', 'Student', ['STUDENT'], ['See what a student sees before results are released']),
     ])
   }),
   http.get(`${API}/demo/session`, route(() => json(demoSessionDto()))),
@@ -310,7 +311,7 @@ export const handlers = [
     `${API}/me`,
     route(({ user }) => {
       const p = user.kind === 'reviewer' ? user.r : user.s
-      const personas: Record<string, NonNullable<S<'Me'>['personaKey']>> = { 'r-rania': 'coordinator', 'r-jane': 'jury', 'r-karim': 'advisor', 's-nour': 'student' }
+      const personas: Record<string, NonNullable<S<'Me'>['personaKey']>> = { 'r-rania': 'coordinator', 'r-jane': 'jury', 'r-karim': 'advisor', 's-nour': 'student', 's-ahmad': 'student-waiting' }
       const persona = personas[p.id] ?? null
       return json({
         ...person(p),

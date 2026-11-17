@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import { oidcEnabled } from '@/auth/oidc'
-import { AVATAR_CLASS, canVisit, PERSONAS, type PersonaId } from '@/auth/personas'
+import { AVATAR_CLASS, canVisit, PERSONAS, personaById, STUDENT_CHOICES, type PersonaId } from '@/auth/personas'
 import { consumeOvernightReset } from '@/auth/demo-session'
 import { cn } from '@/lib/cn'
 import { Icon } from '@/components/assay/Icon'
@@ -26,6 +26,12 @@ export function LandingPage() {
   const [overnight] = useState(() => consumeOvernightReset())
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState<PersonaId | null>(null)
+  /** Which student the Student card enters as. */
+  const [student, setStudent] = useState<PersonaId>('nour')
+  // Four cards: the second student shares the Student card.
+  const cards = PERSONAS.filter((x) => !STUDENT_CHOICES.slice(1).some((c) => c.id === x.id)).map((x) =>
+    x.id === STUDENT_CHOICES[0]!.id ? (personaById(student) ?? x) : x,
+  )
   const from = (location.state as { from?: string } | null)?.from
 
   async function enter(id: PersonaId) {
@@ -145,8 +151,8 @@ export function LandingPage() {
             </div>
           )}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5">
-            {PERSONAS.map((p) => (
-              <article key={p.id} className="flex flex-col gap-4 rounded-[16px] border border-line bg-surface p-6 transition-colors duration-150 hover:border-pri">
+            {cards.map((p) => (
+              <article key={p.role === 'STUDENT' ? 'student' : p.id} className="flex flex-col gap-4 rounded-[16px] border border-line bg-surface p-6 transition-colors duration-150 hover:border-pri">
                 <div className="flex items-center gap-3">
                   <span aria-hidden="true" className={cn('flex size-12 items-center justify-center rounded-full text-[16px] font-semibold', AVATAR_CLASS[p.id])}>
                     {p.firstName[0]}
@@ -159,6 +165,31 @@ export function LandingPage() {
                     </h3>
                   </div>
                 </div>
+                {p.role === 'STUDENT' && (
+                  <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
+                    <legend className="mb-1.5 p-0 text-[13px] font-semibold text-ink2">Which student</legend>
+                    {STUDENT_CHOICES.map((c) => (
+                      <label
+                        key={c.id}
+                        className={cn(
+                          'flex min-h-11 cursor-pointer items-center gap-2.5 rounded-ctl border px-3 text-[14px] transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-sel',
+                          student === c.id ? 'border-2 border-pri bg-pri-soft font-semibold' : 'border-line hover:border-pri',
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="student-persona"
+                          value={c.id}
+                          checked={student === c.id}
+                          onChange={() => setStudent(c.id)}
+                          disabled={busy !== null}
+                          className="size-4 accent-[var(--pri)]"
+                        />
+                        {c.label}
+                      </label>
+                    ))}
+                  </fieldset>
+                )}
                 <p className="m-0 text-[14px] leading-[21px] text-muted">{p.pitch}</p>
                 <div className="flex flex-col gap-2">
                   <span className="text-[13px] font-semibold text-ink2">Try</span>

@@ -61,5 +61,6 @@ e2e/            Playwright specs
 
 ## Demo accounts
 
-The demo personas (Rania, coordinator; Jane, jury; Karim, advisor; Nour, student) share a public
+The demo personas (Rania, coordinator; Jane, jury; Karim, advisor; two students on one card: Nour, Team Alpha,
+with every result out, and Ahmad, Team Beta, still waiting on results) share a public
 password, `assay-demo`. They exist only in the demo realm and hold no real data.

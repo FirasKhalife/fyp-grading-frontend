@@ -26,6 +26,13 @@ test.describe('every persona reaches a meaningful screen in one click', () => {
     await expect(page.getByRole('region', { name: 'Final grade', exact: true })).toContainText('88.0')
   })
 
+  test('Ahmad, the second student, lands on his student home before the results are out', async ({ page }) => {
+    await enterAs(page, 'Ahmad')
+    await expect(page).toHaveURL(/\/student$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Team Beta' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Final grade', exact: true })).toContainText('2 of 5')
+  })
+
   test('the key demo moment: Jane submits, Rania sees the grade and releases it', async ({ page }) => {
     await enterAs(page, 'Jane')
     await page.getByRole('link', { name: 'Continue draft', exact: true }).click()

@@ -5,11 +5,13 @@ import { expect, type Page, type Response } from '@playwright/test'
 export const GATEWAY = process.env.ASSAY_GATEWAY ?? 'http://localhost:9191'
 export const KEYCLOAK = process.env.ASSAY_KEYCLOAK ?? 'http://localhost:7080'
 
-export type Who = 'Rania' | 'Jane' | 'Karim' | 'Nour'
+export type Who = 'Rania' | 'Jane' | 'Karim' | 'Nour' | 'Ahmad'
 
 /** One click on the persona card in a fresh browser (its own new copy), then wait for the first screen to load. */
 export async function enter(page: Page, who: Who) {
   await page.goto('/')
+  // Ahmad shares the Student card with Nour: pick him first.
+  if (who === 'Ahmad') await page.getByRole('radio', { name: 'Ahmad · Beta · waiting on results' }).check()
   await page.getByRole('button', { name: `Enter as ${who}` }).click()
   await expect(page.getByRole('region', { name: 'Demo' })).toBeVisible()
   await settled(page)

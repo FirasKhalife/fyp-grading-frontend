@@ -12,7 +12,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * The four demo personas shown on the landing page
+         * The five demo personas shown on the landing page (two of them students)
          * @description Public: no token and no demo session needed.
          *     One-click sign-in: the SPA requests a token from Keycloak (realm `assay`, public client `assay-spa`) with
          *     `grant_type=password`, `username` from this list and the shared demo password from the SPA's config
@@ -391,7 +391,7 @@ export interface paths {
         post?: never;
         /**
          * Remove a student (admin)
-         * @description 409 `student-is-demo-persona` for Nour Khoury, so the student persona always has a team.
+         * @description 409 `student-is-demo-persona` for Nour Khoury and Ahmad Fares, so each student persona always has a team.
          */
         delete: operations["removeTeamStudent"];
         options?: never;
@@ -849,7 +849,7 @@ export interface components {
         };
         Persona: {
             /** @enum {string} */
-            key: "coordinator" | "jury" | "advisor" | "student";
+            key: "coordinator" | "jury" | "advisor" | "student" | "student-waiting";
             /** @description Keycloak username */
             username: string;
             displayName: string;
@@ -891,7 +891,7 @@ export interface components {
             email: string;
             roles: components["schemas"]["UserRole"][];
             /** @enum {string|null} */
-            personaKey?: "coordinator" | "jury" | "advisor" | "student" | null;
+            personaKey?: "coordinator" | "jury" | "advisor" | "student" | "student-waiting" | null;
             /**
              * Format: uuid
              * @description Set for students
@@ -1629,6 +1629,18 @@ export interface operations {
                      *         ],
                      *         "tryThings": [
                      *           "Read the jury's comments on your final presentation"
+                     *         ]
+                     *       },
+                     *       {
+                     *         "key": "student-waiting",
+                     *         "username": "ahmad.fares",
+                     *         "displayName": "Ahmad Fares",
+                     *         "roleLabel": "Student",
+                     *         "roles": [
+                     *           "STUDENT"
+                     *         ],
+                     *         "tryThings": [
+                     *           "See what a student sees before results are released"
                      *         ]
                      *       }
                      *     ]

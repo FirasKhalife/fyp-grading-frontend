@@ -711,7 +711,8 @@ export function addStudent(state: DemoState, teamId: string, firstName: string, 
 }
 
 export function removeStudent(state: DemoState, studentId: string) {
-  if (['s-nour'].includes(studentId)) throw new DemoError(409, 'Nour is the student persona of this demo, so she stays on Team Alpha.', 'student-is-demo-persona')
+  if (studentId === 's-nour') throw new DemoError(409, 'Nour is a student persona of this demo, so she stays on Team Alpha.', 'student-is-demo-persona')
+  if (studentId === 's-ahmad') throw new DemoError(409, 'Ahmad is a student persona of this demo, so he stays on Team Beta.', 'student-is-demo-persona')
   state.students = state.students.filter((s) => s.id !== studentId)
 }
 

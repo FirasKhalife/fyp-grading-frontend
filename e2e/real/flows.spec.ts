@@ -253,3 +253,60 @@ test('overview: insights and the disagreement flag, CSV export downloads, releas
   expect(res.status).toBe(200)
   await ctx.close()
 })
+
+test('the student view before and after a release: Ahmad waits, the jury submits, Rania releases, Ahmad sees it', async ({ page }) => {
+  // Nour first: every result out and the 88.0 final grade.
+  await enter(page, 'Nour')
+  await expect(page.getByRole('region', { name: 'Final grade', exact: true })).toContainText('88.0')
+  const copy = await sessionId(page)
+
+  // Switch to Ahmad in the same copy: Team Beta, two results out, the final report still waiting.
+  await page.getByRole('button', { name: 'Switch role' }).click()
+  await page.getByRole('dialog', { name: 'Switch role' }).getByRole('button', { name: /Ahmad Fares/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Team Beta' })).toBeVisible()
+  await settled(page)
+  expect(await sessionId(page)).toBe(copy)
+  const finalCard = page.getByRole('region', { name: 'Final grade', exact: true })
+  await expect(finalCard).toContainText('2 of 5')
+  await expect(finalCard).not.toContainText(/\d+\.\d/)
+  expect((await api<{ code: string }>(page, 'GET', '/api/me/team/results/FINAL_REPORT')).body.code).toBe('results-not-released')
+
+  // Jane submits her Beta final report and Rania releases it, in the same copy.
+  await page.getByRole('button', { name: 'Switch role' }).click()
+  await page.getByRole('dialog', { name: 'Switch role' }).getByRole('button', { name: /Jane Smith/ }).click()
+  await openBetaFinalReport(page)
+  await scoreRest(page)
+  await submit(page)
+  await page.getByRole('button', { name: 'Switch role' }).click()
+  await page.getByRole('dialog', { name: 'Switch role' }).getByRole('button', { name: /Rania Haddad/ }).click()
+  const rel = page.getByRole('region', { name: 'Ready to release' })
+  await rel.getByRole('button', { name: 'Release to Beta, Epsilon and Zeta' }).click()
+  await rel.getByRole('button', { name: 'Release now' }).click()
+  await expect(page.getByRole('link', { name: /^\d+\.\d Released\. Team Beta, Final report/ })).toBeVisible()
+
+  // Back to Ahmad: three results out, the final report readable, and a notification about it.
+  await page.getByRole('button', { name: 'Switch role' }).click()
+  await page.getByRole('dialog', { name: 'Switch role' }).getByRole('button', { name: /Ahmad Fares/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Team Beta' })).toBeVisible()
+  await settled(page)
+  await expect(finalCard).toContainText('3 of 5')
+  expect((await api(page, 'GET', '/api/me/team/results/FINAL_REPORT')).status).toBe(200)
+  await expect(page.getByRole('button', { name: /^Notifications, [1-9]\d* unread/ })).toBeVisible()
+  expect(await sessionId(page)).toBe(copy)
+})
+
+test('team detail: the student personas have no remove button', async ({ page }) => {
+  await enter(page, 'Rania')
+  for (const [team, student, other] of [['Alpha', 'Nour Khoury', 'Maya Aoun'], ['Beta', 'Ahmad Fares', 'Yara Saliba']] as const) {
+    await page.goto(`/teams/${await teamId(page, team)}`)
+    await settled(page)
+    await expect(page.getByRole('button', { name: `Remove ${other} from Team ${team}` })).toBeVisible()
+    await expect(page.getByRole('button', { name: `Remove ${student} from Team ${team}` })).toHaveCount(0)
+  }
+  // The server keeps them on their team too.
+  const beta = await teamId(page, 'Beta')
+  const t = await api<{ students: { id: string; firstName: string }[] }>(page, 'GET', `/api/teams/${beta}`)
+  const ahmad = t.body.students.find((s) => s.firstName === 'Ahmad')!
+  const r = await api<{ code: string }>(page, 'DELETE', `/api/teams/${beta}/students/${ahmad.id}`)
+  expect([r.status, r.body.code]).toEqual([409, 'student-is-demo-persona'])
+})
