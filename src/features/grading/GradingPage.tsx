@@ -67,7 +67,7 @@ function GradingForm({ view }: { view: GradingView }) {
   const { team, assessment: a, rubric, evaluation, peers } = view
   const criteria = rubric.criteria
   const ids = useMemo(() => criteria.map((c) => c.id), [criteria])
-  const { draft, setLevel, setComment, setOverall, takeForSubmit, savedAt, saving, failed } = useDraft(team.id, a.key, evaluation, ids)
+  const { draft, setLevel, setComment, setOverall, takeForSubmit, savedAt, saving, failed, failure } = useDraft(team.id, a.key, evaluation, ids)
   const submit = useSubmit(team.id, a.key)
   const [openComments, setOpenComments] = useState<string[]>([])
   const [confirming, setConfirming] = useState(false)
@@ -129,7 +129,11 @@ function GradingForm({ view }: { view: GradingView }) {
   const savedText = locked
     ? 'Submitted and locked'
     : failed
-      ? "Couldn't save. Retrying on your next change."
+      ? failure && failure.status === 409
+        ? failure.message
+        : failure?.code === 'rate-limited' || failure?.status === 503
+          ? `Couldn't save. ${failure.message}`
+          : "Couldn't save. Retrying on your next change."
       : saving
         ? 'Saving…'
         : savedAt && evaluation

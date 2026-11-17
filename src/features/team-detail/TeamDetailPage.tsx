@@ -3,18 +3,19 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/repository'
-import { useTeamDetail, useTeamOps, useTeams } from '@/api/queries'
+import { useTeamDetail, useTeamHistory, useTeamOps, useTeams } from '@/api/queries'
 import type { TeamDetailView } from '@/api/views'
 import { bandOf, LEVEL_NAMES } from '@/domain/levels'
-import type { ReviewerRole } from '@/domain/types'
+import type { ActivityKind, ReviewerRole } from '@/domain/types'
 import { cn, initials } from '@/lib/cn'
 import { addMinutes, daysFromToday, fmtDayYear, fmtShort, fmtStamp, fmtTime } from '@/lib/demo-clock'
-import { formatScore } from '@/lib/scoring'
-import { Icon } from '@/components/assay/Icon'
+import { DISAGREEMENT_THRESHOLD, formatScore } from '@/lib/scoring'
+import { Icon, type IconName } from '@/components/assay/Icon'
 import { FILL, LevelMark, ScoreChip } from '@/components/assay/LevelMark'
 import { Breadcrumb, Main, PageTitle, useTitle } from '@/components/assay/Page'
 import { ErrorState } from '@/components/assay/States'
 import { StatusChip } from '@/components/assay/StatusChip'
+import { personaByUsername } from '@/auth/personas'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
 import { auditText } from '@/domain/audit'
@@ -131,6 +132,7 @@ function TeamDetail({ v }: { v: TeamDetailView }) {
               )
             })}
           </Card>
+          <TeamHistory teamId={team.id} teamName={team.name} />
         </div>
 
         <section aria-labelledby="as-h" className="flex min-w-0 flex-[999_1_640px] flex-col gap-3">
@@ -317,12 +319,17 @@ function Spread({ a }: { a: Row }) {
   const min = Math.min(...scores)
   const max = Math.max(...scores)
   const avg = scores.reduce((x, y) => x + y, 0) / scores.length
-  const wide = (a.spread ?? 0) >= 20
+  const wide = a.disagreement
   return (
-    <div className="flex flex-col gap-1.5 rounded-[12px] border border-line bg-paper p-3.5">
-      <p className="m-0 text-[14px] font-semibold">
-        Reviewer spread: <span className="mono">{formatScore(a.spread ?? 0)}</span> points{' '}
-        <span className={wide ? 'text-amber' : 'text-muted'}>· {wide ? 'wide' : a.spread! >= 10 ? 'moderate' : 'close'}</span>
+    <div className={cn('flex flex-col gap-1.5 rounded-[12px] border bg-paper p-3.5', wide ? 'border-amber-line' : 'border-line')}>
+      <p className="m-0 flex items-center gap-1.5 text-[14px] font-semibold">
+        {wide && <Icon name="swap" size={16} className="flex-none text-amber" />}
+        <span>
+          Reviewer spread: <span className="mono">{formatScore(a.spread ?? 0)}</span> points{' '}
+          <span className={wide ? 'text-amber' : 'text-muted'}>
+            · {wide ? `reviewers disagree (more than ${DISAGREEMENT_THRESHOLD} points apart)` : `within ${DISAGREEMENT_THRESHOLD} points`}
+          </span>
+        </span>
       </p>
       <div
         role="img"
@@ -353,6 +360,61 @@ function Spread({ a }: { a: Row }) {
         Informational only. The team grade is always the plain average ({formatScore(avg)}, the dark line).
       </p>
     </div>
+  )
+}
+
+const HISTORY_ICON: Record<ActivityKind, IconName> = { submit: 'lock', edit: 'pencil', schedule: 'calendar', final: 'check', release: 'eye', assignment: 'people' }
+const HISTORY_FIRST = 6
+
+/** The team's history (contract `GET /api/activity?teamId=`): drafts, submissions, finals, releases, schedule and reviewer changes. */
+function TeamHistory({ teamId, teamName }: { teamId: string; teamName: string }) {
+  const q = useTeamHistory(teamId)
+  const [all, setAll] = useState(false)
+  const items = q.data ?? []
+  const shown = all ? items : items.slice(0, HISTORY_FIRST)
+  return (
+    <Card as="section" aria-labelledby="hi-h" className="flex flex-col gap-2 p-5">
+      <h2 id="hi-h" className="m-0 text-[16px] font-semibold">
+        History {q.isSuccess && <span className="mono font-medium text-muted">{items.length}</span>}
+      </h2>
+      {q.isPending && (
+        <div aria-busy="true" aria-label="Loading the history" className="flex flex-col gap-3 py-1">
+          <Skeleton className="h-4 w-[90%]" />
+          <Skeleton className="h-4 w-[75%]" />
+          <Skeleton className="h-4 w-[82%]" />
+        </div>
+      )}
+      {q.isError && (
+        <ErrorState compact title="We couldn't load the history." actions={<Button size="sm" variant="ghost" onClick={() => void q.refetch()}>Try again</Button>}>
+          The rest of the page is up to date.
+        </ErrorState>
+      )}
+      {q.isSuccess && !items.length && <p className="m-0 text-[14px] text-ink2">Nothing has happened on Team {teamName} yet.</p>}
+      {q.isSuccess && items.length > 0 && (
+        <>
+          <ul className="m-0 list-none p-0">
+            {shown.map((e, i) => (
+              <li key={e.id} className={cn('grid grid-cols-[28px_1fr] gap-2.5 py-2.5', i > 0 && 'border-t border-line')}>
+                <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-[8px] bg-raised text-ink2">
+                  <Icon name={HISTORY_ICON[e.kind]} size={14} />
+                </span>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-[14px] leading-5 [overflow-wrap:anywhere]">
+                    <strong className="font-semibold">{e.who}</strong> {e.text}
+                  </span>
+                  <span className="mono text-[12px] text-muted">{fmtStamp(e.at)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {items.length > HISTORY_FIRST && (
+            <Button variant="ghost" size="sm" className="self-start" aria-expanded={all} onClick={() => setAll((x) => !x)}>
+              {all ? 'Show fewer' : `Show all ${items.length}`}
+            </Button>
+          )}
+        </>
+      )}
+    </Card>
   )
 }
 
@@ -430,19 +492,24 @@ function StudentsCard({ v }: { v: TeamDetailView }) {
                 <span className="truncate text-[13px] text-muted">{s.email}</span>
               </span>
             </span>
-            <button
-              type="button"
-              aria-label={`Remove ${s.firstName} ${s.lastName} from Team ${v.team.name}`}
-              onClick={() =>
-                ops.mutateAsync({ op: 'removeStudent', teamId: v.team.id, studentId: s.id }).then(
-                  () => toast.success(`${s.firstName} ${s.lastName} removed.`),
-                  (x: unknown) => toast.error(x instanceof Error ? x.message : 'Could not remove.'),
-                )
-              }
-              className="flex size-11 flex-none cursor-pointer items-center justify-center rounded-ctl border-0 bg-transparent text-muted hover:bg-raised hover:text-ink"
-            >
-              <Icon name="x" />
-            </button>
+            {personaByUsername(s.email.split('@')[0]) ? (
+              // The student personas always keep their team (409 `student-is-demo-persona`): no remove button.
+              <StatusChip kind="plain">Demo persona</StatusChip>
+            ) : (
+              <button
+                type="button"
+                aria-label={`Remove ${s.firstName} ${s.lastName} from Team ${v.team.name}`}
+                onClick={() =>
+                  ops.mutateAsync({ op: 'removeStudent', teamId: v.team.id, studentId: s.id }).then(
+                    () => toast.success(`${s.firstName} ${s.lastName} removed.`),
+                    (x: unknown) => toast.error(x instanceof Error ? x.message : 'Could not remove.'),
+                  )
+                }
+                className="flex size-11 flex-none cursor-pointer items-center justify-center rounded-ctl border-0 bg-transparent text-muted hover:bg-raised hover:text-ink"
+              >
+                <Icon name="x" />
+              </button>
+            )}
           </li>
         ))}
         {v.students.length === 0 && <li className="py-2 text-[14px] text-muted">No students yet.</li>}
@@ -456,6 +523,8 @@ export function ReviewersCard({ v }: { v: Pick<TeamDetailView, 'team' | 'reviewe
   const all = useTeams()
   const [adding, setAdding] = useState(false)
   const [err, setErr] = useState('')
+  /** Why a removal was refused (409 `reviewer-has-submissions` or `assessment-final`, 422 `composition-invalid`), shown in the card. */
+  const [removeErr, setRemoveErr] = useState('')
   const free = (all.data?.reviewers ?? []).filter((r) => !v.reviewers.some((x) => x.reviewer.id === r.id))
   async function assign(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -542,8 +611,11 @@ export function ReviewersCard({ v }: { v: Pick<TeamDetailView, 'team' | 'reviewe
                   aria-label={`Remove ${r.reviewer.firstName} ${r.reviewer.lastName} from Team ${v.team.name}`}
                   onClick={() =>
                     ops.mutateAsync({ op: 'unassign', teamId: v.team.id, reviewerId: r.reviewer.id }).then(
-                      () => toast.success(`${r.reviewer.firstName} ${r.reviewer.lastName} removed from the team.`),
-                      (x: unknown) => toast.error(x instanceof Error ? x.message : 'Could not remove.'),
+                      () => {
+                        setRemoveErr('')
+                        toast.success(`${r.reviewer.firstName} ${r.reviewer.lastName} removed from the team.`)
+                      },
+                      (x: unknown) => setRemoveErr(`${r.reviewer.firstName} ${r.reviewer.lastName} stays on the team. ${x instanceof Error ? x.message : ''}`.trim()),
                     )
                   }
                   className="flex size-11 flex-none cursor-pointer items-center justify-center rounded-ctl border-0 bg-transparent text-muted hover:bg-raised hover:text-ink"
@@ -555,6 +627,12 @@ export function ReviewersCard({ v }: { v: Pick<TeamDetailView, 'team' | 'reviewe
           </li>
         ))}
       </ul>
+      {removeErr && (
+        <p role="alert" className="m-0 flex gap-2 rounded-ctl border border-amber-line bg-amber-bg p-3 text-[14px] leading-5">
+          <Icon name="warn" size={18} className="flex-none text-amber" />
+          {removeErr}
+        </p>
+      )}
       <p className="m-0 text-[13px] leading-[19px] text-muted">Rules: 1 to 5 reviewers, at least 1 jury member and at least 1 advisor.</p>
     </Card>
   )
@@ -566,12 +644,15 @@ function EditTeam({ v, onDone }: { v: TeamDetailView; onDone: () => void }) {
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
+    const name = String(f.get('name')).trim()
+    const projectTitle = String(f.get('title')).trim()
+    // The server refuses a blank name or title (400); an empty description clears it (contract 1.3.0).
+    if (!name || !projectTitle) {
+      setErr(!name ? 'Give the team a name.' : 'Give the project a title.')
+      return
+    }
     try {
-      await ops.mutateAsync({
-        op: 'update',
-        teamId: v.team.id,
-        patch: { name: String(f.get('name')), projectTitle: String(f.get('title')), description: String(f.get('desc')) },
-      })
+      await ops.mutateAsync({ op: 'update', teamId: v.team.id, patch: { name, projectTitle, description: String(f.get('desc')).trim() } })
       toast.success('Team saved.')
       onDone()
     } catch (x) {
@@ -586,7 +667,7 @@ function EditTeam({ v, onDone }: { v: TeamDetailView; onDone: () => void }) {
       </label>
       <label className="flex flex-col gap-1 text-[13px] font-semibold text-muted">
         Project title
-        <input name="title" defaultValue={v.team.projectTitle} className={field} />
+        <input name="title" defaultValue={v.team.projectTitle} required className={field} />
       </label>
       <label className="flex flex-col gap-1 text-[13px] font-semibold text-muted">
         Short description

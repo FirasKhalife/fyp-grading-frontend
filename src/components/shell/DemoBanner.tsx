@@ -2,6 +2,7 @@ import { Popover } from 'radix-ui'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
+import { ApiError } from '@/api/client'
 import { useResetDemo } from '@/api/queries'
 import { useAuth } from '@/auth/AuthProvider'
 import { AVATAR_CLASS, PERSONAS, ROLE_SHORT, type PersonaId } from '@/auth/personas'
@@ -40,9 +41,10 @@ export function DemoBanner() {
       await signOut()
       navigate('/', { replace: true, state: { fresh: true } })
       toast.success('Fresh copy ready. Pick a role to continue.')
-    } catch {
+    } catch (e) {
       setMode('idle')
-      toast.error("The reset didn't go through. Try again in a moment.")
+      // e.g. 429: "That was a lot of requests in a short time. Try again in 40 seconds."
+      toast.error(e instanceof ApiError ? `The reset didn't go through. ${e.message}` : "The reset didn't go through. Try again in a moment.")
     }
   }
 

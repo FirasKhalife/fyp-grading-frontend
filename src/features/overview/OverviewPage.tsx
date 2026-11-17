@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { useOverview, useRelease, useResetDemo } from '@/api/queries'
@@ -8,7 +8,7 @@ import { ASSESSMENTS } from '@/domain/assessments'
 import { bandOf } from '@/domain/levels'
 import type { ActivityKind, Assessment, AssessmentKey } from '@/domain/types'
 import { cn, joinNames } from '@/lib/cn'
-import { fmtLong, fmtStamp, isoDay, sessionYear } from '@/lib/demo-clock'
+import { fmtLong, fmtStamp, isoDay, sessionLabel } from '@/lib/demo-clock'
 import { formatScore } from '@/lib/scoring'
 import { Glyph } from '@/components/assay/Wordmark'
 import { Icon, type IconName } from '@/components/assay/Icon'
@@ -19,6 +19,9 @@ import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
 import { repository } from '@/api/repository'
 import { GradeGrid } from './GradeGrid'
+
+// The chart library is large: load the insights after the grid.
+const Insights = lazy(() => import('./Insights').then((m) => ({ default: m.Insights })))
 
 type Filter = 'all' | 'attention' | 'final'
 type Sort = 'name' | 'final' | 'pending'
@@ -46,7 +49,7 @@ function Header({ data }: { data?: OverviewView }) {
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-1">
         <span className="mono text-[13px] text-muted">
-          Spring {sessionYear()} session{data ? ` · ${data.teamCount} teams · ${data.reviewerCount} reviewers` : ''}
+          {sessionLabel()} session{data ? ` · ${data.teamCount} teams · ${data.reviewerCount} reviewers` : ''}
         </span>
         <PageTitle>Overview</PageTitle>
         <p className="m-0 text-ink2">
@@ -221,6 +224,16 @@ function OverviewBody({ data }: { data: OverviewView }) {
           <ActivityFeed items={data.activity} />
         </div>
       </div>
+      <Suspense
+        fallback={
+          <div aria-busy="true" aria-label="Loading the insights" className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] gap-6">
+            <Card className="h-64" />
+            <Card className="h-64" />
+          </div>
+        }
+      >
+        <Insights data={data.insights} />
+      </Suspense>
     </>
   )
 }
@@ -285,7 +298,7 @@ function ReleasePanel({ releases, teamCount }: { releases: ReleaseCandidate[]; t
   )
 }
 
-const FEED_ICON: Record<ActivityKind, IconName> = { submit: 'lock', edit: 'pencil', schedule: 'calendar', final: 'check', release: 'eye' }
+const FEED_ICON: Record<ActivityKind, IconName> = { submit: 'lock', edit: 'pencil', schedule: 'calendar', final: 'check', release: 'eye', assignment: 'people' }
 
 function ActivityFeed({ items }: { items: OverviewView['activity'] }) {
   return (
@@ -294,12 +307,18 @@ function ActivityFeed({ items }: { items: OverviewView['activity'] }) {
         <h2 id="feed-h" className="m-0 text-[16px] font-semibold">
           Activity
         </h2>
-        <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-green">
-          <span aria-hidden="true" className="size-2 rounded-full bg-green shadow-[0_0_0_3px_var(--green-soft)]" />
-          Live
-        </span>
+        {items && (
+          <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-green">
+            <span aria-hidden="true" className="size-2 rounded-full bg-green shadow-[0_0_0_3px_var(--green-soft)]" />
+            Live
+          </span>
+        )}
       </div>
-      {items.length ? (
+      {!items ? (
+        <p role="status" className="m-0 text-[14px] leading-[21px] text-muted">
+          The activity feed isn't available right now. The grid above is up to date, and the feed comes back on its own.
+        </p>
+      ) : items.length ? (
         <ul aria-live="polite" className="m-0 list-none p-0">
           {items.map((e, i) => (
             <li key={e.id} className={cn('grid grid-cols-[28px_1fr] gap-2.5 py-3', i > 0 && 'border-t border-line')}>
@@ -397,10 +416,13 @@ function OverviewError({ onRetry }: { onRetry: () => void }) {
                 <Button
                   variant="ghost"
                   onClick={() =>
-                    void reset.mutateAsync().then(async () => {
-                      await signOut()
-                      window.location.assign('/')
-                    })
+                    void reset.mutateAsync().then(
+                      async () => {
+                        await signOut()
+                        window.location.assign('/')
+                      },
+                      (e: unknown) => toast.error(e instanceof Error ? e.message : "The reset didn't go through. Try again in a moment."),
+                    )
                   }
                 >
                   Reset my demo

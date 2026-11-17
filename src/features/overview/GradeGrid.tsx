@@ -23,7 +23,7 @@ export function cellModel(row: GridRow, c: TeamAssessmentInfo): CellModel {
   const t = row.team
   if (c.grade !== null) {
     const b = bandOf(c.grade)
-    const note = `${c.release ? 'Released' : 'Final'}${c.spread !== null && c.spread >= 20 ? ` · spread ${formatScore(c.spread)}` : ''}`
+    const note = `${c.release ? 'Released' : 'Final'}${c.disagreement && c.spread !== null ? ` · spread ${formatScore(c.spread)}` : ''}`
     return {
       kind: 'grade',
       main: formatScore(c.grade),

@@ -6,7 +6,7 @@ import { assessmentFromSlug, assessmentSlug } from '@/domain/assessments'
 import { LEVEL_NAMES, LEVEL_ZERO_DESCRIPTION } from '@/domain/levels'
 import type { Level } from '@/domain/types'
 import { cn } from '@/lib/cn'
-import { fmtDayYear, fmtShort } from '@/lib/demo-clock'
+import { fmtDayYear, fmtShort, fmtStamp } from '@/lib/demo-clock'
 import { Icon } from '@/components/assay/Icon'
 import { FILL, LevelBars } from '@/components/assay/LevelMark'
 import { Main, PageTitle, useTitle } from '@/components/assay/Page'
@@ -74,6 +74,7 @@ export function RubricsPage() {
           {q.data.assessments.map((a) => {
             const r = q.data.rubrics.find((x) => x.assessment === a.key)!
             const total = r.criteria.reduce((s, c) => s + c.weight, 0)
+            const edited = q.data.edited[a.key] ?? null
             return (
               <Tabs.Content key={a.key} value={a.key} className="flex flex-col gap-4 outline-none">
                 <div className="flex flex-wrap gap-2">
@@ -88,6 +89,12 @@ export function RubricsPage() {
                     {a.key === 'FINAL_PRESENTATION' ? `Defenses · due ${fmtDayYear(a.due)}` : `Due ${fmtShort(a.due)}`}
                     {a.weight === 0 && ' · required'}
                   </StatusChip>
+                  {edited && (
+                    <StatusChip kind="plain" icon="pencil">
+                      Last edited by {edited.by}
+                      {edited.at && `, ${fmtStamp(edited.at)}`}
+                    </StatusChip>
+                  )}
                 </div>
                 <Card className="overflow-auto">
                   <table className="w-full min-w-[1100px] border-separate border-spacing-0">

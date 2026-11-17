@@ -50,7 +50,7 @@ export interface DemoState {
   seq: number
 }
 
-export const STATE_VERSION = 4
+export const STATE_VERSION = 5
 
 const ABBR: Record<AssessmentKey, string> = {
   PROPOSAL_PRESENTATION: 'pp',
@@ -159,7 +159,7 @@ export function createSeedState(): DemoState {
 
   // Feed text placeholders need the grades, so resolve them after the evaluations exist.
   const fill = (text: string) => resolvePlaceholders(state, text)
-  state.activity = ACTIVITY.map((a: FeedSpec, i) => ({ id: `a-${i}`, kind: a.kind, who: a.who, text: fill(a.text), at: at(a.at) }))
+  state.activity = ACTIVITY.map((a: FeedSpec, i) => ({ id: `a-${i}`, kind: a.kind, who: a.who, text: fill(a.text), at: at(a.at), teamId: a.team }))
   state.notifications = Object.fromEntries(
     Object.entries(NOTIFICATIONS).map(([user, list]) => [
       user,

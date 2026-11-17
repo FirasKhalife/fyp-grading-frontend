@@ -16,7 +16,8 @@ import type {
   Student,
   Team,
 } from '@/domain/types'
-import { now, parseLocal } from '@/lib/demo-clock'
+import { now, parseLocal, setSessionToday } from '@/lib/demo-clock'
+import { markCopyCreated, setBrowserDemoSessionId } from '@/auth/demo-session'
 import { parisToUtc, utcToParis } from '@/lib/tz'
 import { api, ApiError } from './client'
 import type { components } from './schema'
@@ -153,7 +154,7 @@ const ACTIVITY_KIND: Record<S<'ActivityEntry'>['kind'], ActivityKind> = {
   GRADE_FINAL: 'final',
   FINAL_GRADE_COMPUTED: 'final',
   RELEASED: 'release',
-  ASSIGNMENT: 'schedule',
+  ASSIGNMENT: 'assignment',
 }
 
 /** The API's structured link, as a route for the signed-in role. */
@@ -201,7 +202,12 @@ function teamAssessmentOf(t: S<'TeamAssessment'>, evaluations: Evaluation[] = []
     reviewers,
     overdue: t.overdue,
     spread: t.spread ?? null,
+    disagreement: t.disagreement,
   }
+}
+
+function activityOf(x: S<'ActivityEntry'>): Activity {
+  return { id: x.id, kind: ACTIVITY_KIND[x.kind], who: x.actor.displayName, text: x.text, at: wall(x.at) }
 }
 
 /* ---------- the repository ---------- */
@@ -213,8 +219,13 @@ export const httpRepository = {
   async ensureDemoSession() {
     return api.put<S<'DemoSession'>>('/api/demo/session')
   },
-  async resetDemo(): Promise<void> {
-    await api.post<S<'DemoSession'>>('/api/demo/session/reset')
+  /** The fresh copy has a NEW id (contract 1.3.0): use it from now on; the old one answers 404. */
+  async resetDemo(): Promise<S<'DemoSession'>> {
+    const s = await api.post<S<'DemoSession'>>('/api/demo/session/reset')
+    setBrowserDemoSessionId(s.id)
+    setSessionToday(s.today)
+    markCopyCreated()
+    return s
   },
   async me() {
     return api.get<S<'Me'>>('/api/me')
@@ -296,7 +307,11 @@ export const httpRepository = {
   async overview(): Promise<OverviewView> {
     const [o, act, reviewers] = await Promise.all([
       api.get<S<'Overview'>>('/api/overview'),
-      api.get<S<'ActivityPage'>>('/api/activity?size=12'),
+      // The feed comes from notification-service: if that is down, the grid still shows (found in integration).
+      api.get<S<'ActivityPage'>>('/api/activity?size=12').catch((e: unknown) => {
+        if (e instanceof ApiError && (e.status === 0 || e.status === 429 || e.status >= 500)) return null
+        throw e
+      }),
       api.get<S<'ReviewerPage'>>('/api/reviewers?size=100'),
     ])
     const rows: GridRow[] = o.teams.map((r) => {
@@ -313,6 +328,7 @@ export const httpRepository = {
           reviewers: [],
           overdue: c.overdue,
           spread: c.spread ?? null,
+          disagreement: c.disagreement,
         }
       })
       const missing = cells.filter((c) => c.grade === null)
@@ -322,7 +338,7 @@ export const httpRepository = {
         final: r.finalGrade ?? null,
         finalVisible: r.finalState === 'VISIBLE',
         needs: r.finalGrade != null ? '' : missing.length === 1 && missing[0]!.assessment.role === 'ADVISOR' ? 'Needs advisor' : `Needs ${missing.length} more`,
-        attention: cells.some((c) => c.overdue || (c.spread ?? 0) >= 20) || (r.defenseSlot?.conflicts.length ?? 0) > 0,
+        attention: cells.some((c) => c.overdue || c.disagreement) || (r.defenseSlot?.conflicts.length ?? 0) > 0,
       }
     })
     const overdueBy = new Map<string, string[]>()
@@ -351,10 +367,27 @@ export const httpRepository = {
       rows,
       releases: releases.filter((r) => r.pendingTeams.length > 0),
       releaseCounts: Object.fromEntries(o.assessments.map((a) => [a.code, a.releasedTeamCount])),
-      activity: act.content.map(
-        (x): Activity => ({ id: x.id, kind: ACTIVITY_KIND[x.kind], who: x.actor.displayName, text: x.text, at: wall(x.at) }),
-      ),
+      activity: act ? act.content.map(activityOf) : null,
+      insights: {
+        threshold: o.insights.disagreementThreshold,
+        distribution: o.insights.finalGradeDistribution,
+        disagreements: o.insights.disagreements.map((d) => {
+          const col = o.assessments.find((x) => x.code === d.assessment)!
+          return {
+            team: { id: d.team.id, name: d.team.name },
+            assessment: assessmentOf(d.assessment, col.dueAt, col.weight, col.reviewerRole),
+            spread: d.spread,
+            submitted: d.submittedCount,
+          }
+        }),
+      },
     }
+  },
+
+  /** P6: one team's history, newest first (contract 1.2.0 `GET /api/activity?teamId=`). */
+  async teamHistory(teamId: string): Promise<Activity[]> {
+    const p = await api.get<S<'ActivityPage'>>(`/api/activity?teamId=${encodeURIComponent(teamId)}&size=50`)
+    return p.content.map(activityOf)
   },
 
   async exportCsv(): Promise<string> {
@@ -441,6 +474,7 @@ export const httpRepository = {
     return {
       assessments: assessments.map((a) => assessmentOf(a.code, a.dueAt, a.weight, a.reviewerRole)),
       rubrics: rubrics.map((r) => ({ assessment: r.assessment, criteria: r.criteria.map(criterionOf) })),
+      edited: Object.fromEntries(rubrics.map((r) => [r.assessment, r.updatedBy ? { at: r.updatedAt ? wall(r.updatedAt) : null, by: r.updatedBy.displayName } : null])),
       submittedCount,
     }
   },

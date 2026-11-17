@@ -13,7 +13,8 @@ npm run dev        # http://localhost:5173, with the API mocked in the browser (
 
 No backend is needed: [MSW](https://mswjs.io) serves every endpoint of the API contract from a
 private copy of the demo data kept in your browser. To use the real gateway and Keycloak instead,
-copy `.env.example` to `.env.local` and set the variables.
+copy `.env.example` to `.env.local` and set the variables. The dev server must stay on port 5173: it's the
+only origin the local Keycloak client accepts. Unit tests always use the mocks, whatever `.env.local` says.
 
 | Script | What it does |
 |---|---|
@@ -21,6 +22,7 @@ copy `.env.example` to `.env.local` and set the variables.
 | `npm run build` | Type-check and build to `dist/` |
 | `npm test` | Unit and component tests (Vitest, Testing Library, MSW, axe) |
 | `npm run e2e` | Playwright: a smoke test per persona, keyboard-only walkthrough, axe WCAG 2.2 AA in light and dark, 375 px layouts (uses installed Chrome; `PW_CHANNEL=chromium` for Playwright's own) |
+| `npx playwright test -c playwright.real.config.ts` | The same checks plus `e2e/real/` (every persona flow, every screen in light, dark and 375 px) against a running stack: the gateway on 9191 and Keycloak on 7080, from `fyp-grading-docker-compose`. Each test makes its own copy, so lift the gateway's copy limit for the run (see the config) |
 | `npm run lint` | ESLint |
 | `npm run gen:api` | Regenerate `src/api/schema.d.ts` from `../contract/openapi.yaml` |
 
@@ -59,5 +61,6 @@ e2e/            Playwright specs
 
 ## Demo accounts
 
-The demo personas (Rania, coordinator; Jane, jury; Karim, advisor; Nour, student) share a public
+The demo personas (Rania, coordinator; Jane, jury; Karim, advisor; two students on one card: Nour, Team Alpha,
+with every result out, and Ahmad, Team Beta, still waiting on results) share a public
 password, `assay-demo`. They exist only in the demo realm and hold no real data.

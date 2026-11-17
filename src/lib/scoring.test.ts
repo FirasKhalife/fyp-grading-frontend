@@ -114,3 +114,22 @@ describe('helpers', () => {
     expect(weightsTotal([10, '', 20, '5'])).toBe(35)
   })
 })
+
+describe('disagreement and distribution (contract 1.2.0)', () => {
+  it('flags a spread above 15 points, on the displayed value', async () => {
+    const { disagrees } = await import('./scoring')
+    expect(disagrees(null)).toBe(false)
+    expect(disagrees(15)).toBe(false)
+    expect(disagrees(15.04)).toBe(false)
+    expect(disagrees(15.05)).toBe(true)
+    expect(disagrees(21.3)).toBe(true)
+  })
+
+  it('puts final grades in ten 10-point bands, 100 in the last one', async () => {
+    const { gradeDistribution } = await import('./scoring')
+    const d = gradeDistribution([0, 9.94, 9.96, 70, 79.9, 100])
+    expect(d).toHaveLength(10)
+    expect(d.map((b) => b.count)).toEqual([2, 1, 0, 0, 0, 0, 0, 2, 0, 1])
+    expect(d[9]).toEqual({ from: 90, to: 100, count: 1 })
+  })
+})

@@ -7,6 +7,7 @@ import { assessmentFromSlug, assessmentSlug } from '@/domain/assessments'
 import { LEVEL_NAMES } from '@/domain/levels'
 import type { AssessmentKey, Criterion, Level } from '@/domain/types'
 import { cn, joinNames } from '@/lib/cn'
+import { fmtStamp } from '@/lib/demo-clock'
 import { weightsTotal } from '@/lib/scoring'
 import { ApiError } from '@/api/repository'
 import { Icon } from '@/components/assay/Icon'
@@ -79,9 +80,12 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
   const [saved, setSaved] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<number, string[]>>({})
   const total = weightsTotal(rows.map((r) => r.weight))
-  const ok = total === 100 && rows.every((r) => r.name.trim()) && rows.length > 0
+  // Weights are whole numbers (contract 1.3.0: 33.5 is a 400).
+  const whole = rows.every((r) => r.weight === '' || Number.isInteger(r.weight))
+  const ok = total === 100 && whole && rows.every((r) => r.name.trim()) && rows.length > 0
   const diff = 100 - total
   const sub = data.submittedCount[assessmentKey]
+  const edited = data.edited[assessmentKey] ?? null
   const blocker = useBlocker(({ currentLocation, nextLocation }) => dirtyRef.current && currentLocation.pathname !== nextLocation.pathname)
 
   function update(next: Row[]) {
@@ -132,6 +136,8 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
     ? 'Saved. Reviewers see the new rubric right away.'
     : !rows.every((r) => r.name.trim())
       ? 'Every criterion needs a name.'
+      : !whole
+        ? 'Weights must be whole numbers, like 15 or 20.'
       : ok
         ? 'Weights add up to 100%. Ready to save.'
         : diff > 0
@@ -146,6 +152,16 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
         <p className="m-0 text-ink2">
           {a.role === 'JURY' ? 'Jury' : 'Advisor'} assessment · {a.weight}% of the final grade. Reorder with the arrow buttons; weights must total 100% to
           save.
+        </p>
+        <p className="m-0 text-[13px] text-muted">
+          {edited ? (
+            <>
+              Last edited by {edited.by}
+              {edited.at && <>, {fmtStamp(edited.at)}</>}.
+            </>
+          ) : (
+            'Not edited since the session started: this is the seeded rubric.'
+          )}
         </p>
       </div>
       {sub && sub.total > 0 && (
@@ -217,7 +233,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
                         inputMode="numeric"
                         min={0}
                         max={100}
-                        step={5}
+                        step={1}
                         value={r.weight}
                         onChange={(e) => patch(i, { weight: e.target.value === '' ? '' : Number(e.target.value) })}
                         className={cn(field, 'mono w-[76px] text-right font-semibold')}

@@ -43,6 +43,9 @@ export interface Criterion {
 export interface Rubric {
   assessment: AssessmentKey
   criteria: Criterion[]
+  /** Last save (Paris wall clock) and who made it; absent for the seed. */
+  updatedAt?: string | null
+  updatedById?: string | null
 }
 
 export interface Person {
@@ -122,7 +125,7 @@ export interface AppNotification {
   read: boolean
 }
 
-export type ActivityKind = 'submit' | 'edit' | 'schedule' | 'final' | 'release'
+export type ActivityKind = 'submit' | 'edit' | 'schedule' | 'final' | 'release' | 'assignment'
 
 export interface Activity {
   id: string
@@ -130,6 +133,8 @@ export interface Activity {
   who: string
   text: string
   at: string
+  /** The team the line is about, for one team's history (contract 1.2.0 `GET /api/activity?teamId=`). */
+  teamId?: string | null
 }
 
 export interface Release {

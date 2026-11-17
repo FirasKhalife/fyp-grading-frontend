@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ApiError } from '@/api/client'
 import { useSaveDraft } from '@/api/queries'
 import type { DraftState } from '@/api/repository'
 import type { AssessmentKey, Evaluation, Level } from '@/domain/types'
@@ -23,6 +24,8 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
   const [savedAt, setSavedAt] = useState<string | null>(evaluation?.updatedAt ?? null)
   const [saving, setSaving] = useState(false)
   const [failed, setFailedState] = useState(false)
+  /** The last save's problem, when it was one the server explained (e.g. 409 `evaluation-submitting`). */
+  const [failure, setFailure] = useState<ApiError | null>(null)
   const failedRef = useRef(false)
   const save = useSaveDraft(teamId, a)
   const latest = useRef(draft)
@@ -53,9 +56,11 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
           setSavedAt(e.updatedAt)
           failedRef.current = false
           setFailedState(false)
+          setFailure(null)
         },
-        () => {
+        (e: unknown) => {
           ok = false
+          setFailure(e instanceof ApiError ? e : null)
           dirty.current = true
           failedRef.current = true
           setFailedState(true)
@@ -83,6 +88,22 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
 
   useEffect(() => () => void flush(), [flush])
 
+  // The rubric changed under the form (409 `rubric-changed`, then a refetch): keep the picks for the
+  // criteria that remain, drop the removed ones, and start new ones unscored.
+  const idsKey = criterionIds.join('|')
+  useEffect(() => {
+    const ids = idsKey ? idsKey.split('|') : []
+    const cur = latest.current
+    const same = ids.length === Object.keys(cur.levels).length && ids.every((id) => id in cur.levels)
+    if (same) return
+    latest.current = {
+      ...cur,
+      levels: Object.fromEntries(ids.map((id) => [id, cur.levels[id] ?? null])),
+      comments: Object.fromEntries(Object.entries(cur.comments).filter(([id]) => ids.includes(id))),
+    }
+    setDraft(latest.current)
+  }, [idsKey])
+
   const setLevel = useCallback((id: string, l: Level) => update((d) => ({ ...d, levels: { ...d.levels, [id]: l } }), 0), [update])
   const setComment = useCallback((id: string, text: string) => update((d) => ({ ...d, comments: { ...d.comments, [id]: text } }), 700), [update])
   const setOverall = useCallback((text: string) => update((d) => ({ ...d, overall: text }), 700), [update])
@@ -97,5 +118,5 @@ export function useDraft(teamId: string, a: AssessmentKey, evaluation: Evaluatio
     return latest.current
   }, [])
 
-  return { draft, setLevel, setComment, setOverall, flush, takeForSubmit, savedAt, saving, failed }
+  return { draft, setLevel, setComment, setOverall, flush, takeForSubmit, savedAt, saving, failed, failure }
 }

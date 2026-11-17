@@ -59,6 +59,21 @@ export function spread(scores: readonly number[]): number {
   return Math.max(...scores) - Math.min(...scores)
 }
 
+/** Reviewers more than this many points apart are flagged (contract `Insights.disagreementThreshold`). */
+export const DISAGREEMENT_THRESHOLD = 15
+
+/** True when the spread, as displayed (one decimal), is above the threshold. Informational only. */
+export function disagrees(spreadValue: number | null, threshold = DISAGREEMENT_THRESHOLD): boolean {
+  return spreadValue !== null && Math.round(spreadValue * 10) / 10 > threshold
+}
+
+/** Final grades in ten 10-point bands: [0, 10), [10, 20) … [90, 100]. */
+export function gradeDistribution(grades: readonly number[]): { from: number; to: number; count: number }[] {
+  const bands = Array.from({ length: 10 }, (_, i) => ({ from: i * 10, to: i * 10 + 10, count: 0 }))
+  for (const g of grades) bands[Math.min(9, Math.max(0, Math.floor(Math.round(g * 10) / 100)))]!.count += 1
+  return bands
+}
+
 /** Scores are shown to one decimal place, on 0–100. */
 export function formatScore(n: number): string {
   return roundTo1(n).toFixed(1)

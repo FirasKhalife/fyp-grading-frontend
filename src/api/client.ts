@@ -1,4 +1,5 @@
 import { browserDemoSessionId as demoSessionId } from '@/auth/demo-session'
+import { parseRetryAfter, problemMessage } from './problems'
 
 /**
  * Thin fetch client for the gateway. Every data call carries the bearer token (read fresh on each
@@ -15,6 +16,8 @@ export class ApiError extends Error {
     public code: string = 'unknown',
     public errors: { field: string; message: string }[] = [],
     public extra: Record<string, unknown> = {},
+    /** Seconds from `Retry-After` (429, 503), when the server sent it. */
+    public retryAfter: number | null = null,
   ) {
     super(message)
   }
@@ -67,13 +70,28 @@ const FALLBACK: Record<number, string> = {
   503: 'The demo is starting up, try again in a minute.',
 }
 
+/** 503 `demo-copy-in-progress`: the copy is still being created. Wait as told, a few times, then give up. */
+const COPY_IN_PROGRESS_TRIES = 3
+
 export async function request<T>(method: string, path: string, body?: unknown, opts: { raw?: boolean } = {}): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await requestOnce<T>(method, path, body, opts)
+    } catch (e) {
+      if (!(e instanceof ApiError) || e.code !== 'demo-copy-in-progress' || attempt >= COPY_IN_PROGRESS_TRIES) throw e
+      await new Promise((r) => setTimeout(r, Math.min(5, e.retryAfter ?? 1) * 1000))
+    }
+  }
+}
+
+async function requestOnce<T>(method: string, path: string, body: unknown, opts: { raw?: boolean }): Promise<T> {
   let res: Response
+  const headers = await authHeaders()
   try {
     res = await fetch(apiUrl(path), {
       method,
       headers: {
-        ...(await authHeaders()),
+        ...headers,
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         // Raw calls are the CSV export, which the server only produces as text/csv.
         Accept: opts.raw ? 'text/csv, */*;q=0.1' : 'application/json',
@@ -90,10 +108,15 @@ export async function request<T>(method: string, path: string, body?: unknown, o
     } catch {
       /* not a problem document */
     }
-    const err = new ApiError(res.status, p.detail ?? FALLBACK[res.status] ?? p.title ?? 'Something went wrong.', p.code ?? String(res.status), p.errors ?? [], p)
+    const code = p.code ?? (res.status === 429 ? 'rate-limited' : String(res.status))
+    const retryAfter = parseRetryAfter(res.headers.get('Retry-After'))
+    const message = problemMessage(code, retryAfter) ?? p.detail ?? FALLBACK[res.status] ?? p.title ?? 'Something went wrong.'
+    const err = new ApiError(res.status, message, code, p.errors ?? [], p, retryAfter)
+    // A reply for a session id this browser no longer uses (a reset swapped it mid-request) says nothing about the current copy.
+    const stale = headers['X-Demo-Session'] !== demoSessionId()
     if (res.status === 401) onUnauthorized?.()
     // The session endpoints handle their own 404; anywhere else it means the copy vanished mid-visit.
-    else if ((err.code === 'demo-session-not-found' && !path.startsWith('/api/demo/session')) || err.code === 'demo-session-required') onSessionProblem?.(err)
+    else if (!stale && ((err.code === 'demo-session-not-found' && !path.startsWith('/api/demo/session')) || err.code === 'demo-session-required')) onSessionProblem?.(err)
     throw err
   }
   if (opts.raw) return (await res.text()) as T

@@ -1,3 +1,4 @@
+import { gradeDistribution } from '@/lib/scoring'
 import { delay, http, HttpResponse, sse, type JsonBodyType } from 'msw'
 import { ASSESSMENTS } from '@/domain/assessments'
 import type { AssessmentKey, Criterion, Level, NotificationKind, Reviewer, ReviewerRole, Student } from '@/domain/types'
@@ -53,9 +54,13 @@ export function setMockLatency(ms: number) {
 /* ---------- problems ---------- */
 
 function problem(status: number, code: string, detail: string, extra: Record<string, unknown> = {}) {
+  // `retryAfter` travels as the Retry-After header (seconds), not in the body.
+  const { retryAfter, ...rest } = extra
+  const headers: Record<string, string> = { 'Content-Type': 'application/problem+json' }
+  if (typeof retryAfter === 'number') headers['Retry-After'] = String(retryAfter)
   return HttpResponse.json(
-    { type: `https://assay.dev/problems/${code}`, title: code.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()), status, code, detail, ...extra } as JsonBodyType,
-    { status, headers: { 'Content-Type': 'application/problem+json' } },
+    { type: `https://assay.dev/problems/${code}`, title: code.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()), status, code, detail, ...rest } as JsonBodyType,
+    { status, headers },
   )
 }
 
@@ -96,6 +101,30 @@ function sessionOf(request: Request): string {
   if (id !== store.demoSessionId()) store.selectSession(id)
   return id
 }
+
+/**
+ * The gateway's limit on creating or resetting a copy (contract 1.3.0): one a minute, ten in a burst,
+ * per client. Off under Vitest, where every test makes a copy; tests stub a 429 with `server.use`.
+ */
+export const copyLimit = (() => {
+  const burst = 10
+  const perMs = 60_000
+  let tokens = burst
+  let at = Date.now()
+  return {
+    take() {
+      if (import.meta.env.MODE === 'test') return
+      const t = Date.now()
+      tokens = Math.min(burst, tokens + (t - at) / perMs)
+      at = t
+      if (tokens < 1) {
+        const wait = Math.ceil(((1 - tokens) * perMs) / 1000)
+        throw new Problem(429, 'rate-limited', 'Too many demo copies created or reset from here. Wait a little.', { retryAfter: wait })
+      }
+      tokens -= 1
+    },
+  }
+})()
 
 function requireCopy() {
   if (!store.hasCopy()) throw new Problem(404, 'demo-session-not-found', 'Your demo copy was reset. Pick a role to start a fresh one.')
@@ -193,6 +222,8 @@ function activityKind(kind: DemoState['activity'][number]['kind'], text: string)
       return /final grade/i.test(text) ? 'FINAL_GRADE_COMPUTED' : 'GRADE_FINAL'
     case 'release':
       return 'RELEASED'
+    case 'assignment':
+      return 'ASSIGNMENT'
   }
 }
 
@@ -245,6 +276,7 @@ export const handlers = [
       p('jury', 'jane.smith', 'Jane Smith', 'Jury member', ['REVIEWER'], ['Finish the Team Beta final report draft', "Grade Team Epsilon's final presentation"]),
       p('advisor', 'karim.nassar', 'Karim Nassar', 'Advisor', ['REVIEWER'], ['Submit the overdue advisor assessment for Team Delta']),
       p('student', 'nour.khoury', 'Nour Khoury', 'Student', ['STUDENT'], ["Read the jury's comments on your final presentation"]),
+      p('student-waiting', 'ahmad.fares', 'Ahmad Fares', 'Student', ['STUDENT'], ['See what a student sees before results are released']),
     ])
   }),
   http.get(`${API}/demo/session`, route(() => json(demoSessionDto()))),
@@ -253,6 +285,7 @@ export const handlers = [
     route(
       () => {
         if (store.hasCopy()) return json(demoSessionDto(), 200)
+        copyLimit.take()
         store.createCopy()
         return json(demoSessionDto(), 201)
       },
@@ -263,7 +296,9 @@ export const handlers = [
     `${API}/demo/session/reset`,
     route(
       async () => {
+        copyLimit.take()
         await delay(latency ? 1200 : 0)
+        // The fresh copy gets a NEW id; demoSessionDto() reports it.
         store.resetCopy()
         return json(demoSessionDto())
       },
@@ -276,7 +311,7 @@ export const handlers = [
     `${API}/me`,
     route(({ user }) => {
       const p = user.kind === 'reviewer' ? user.r : user.s
-      const personas: Record<string, NonNullable<S<'Me'>['personaKey']>> = { 'r-rania': 'coordinator', 'r-jane': 'jury', 'r-karim': 'advisor', 's-nour': 'student' }
+      const personas: Record<string, NonNullable<S<'Me'>['personaKey']>> = { 'r-rania': 'coordinator', 'r-jane': 'jury', 'r-karim': 'advisor', 's-nour': 'student', 's-ahmad': 'student-waiting' }
       const persona = personas[p.id] ?? null
       return json({
         ...person(p),
@@ -443,6 +478,7 @@ export const handlers = [
             draftCount: i.reviewers.filter((r) => r.state === 'DRAFT').length,
             overdue: i.overdue,
             spread: i.spread === null ? null : Math.round(i.spread * 10) / 10,
+            disagreement: i.disagreement,
             releasedAt: i.release ? parisToUtc(i.release.at) : null,
           } satisfies S<'OverviewCell'>
         })
@@ -471,6 +507,13 @@ export const handlers = [
         },
         assessments: ASSESSMENTS.map((a) => assessmentDto(state, a.key)),
         teams: rows,
+        insights: {
+          disagreementThreshold: v.insights.threshold,
+          finalGradeDistribution: gradeDistribution(rows.flatMap((r) => (r.finalGrade == null ? [] : [r.finalGrade]))),
+          disagreements: rows
+            .flatMap((r) => r.cells.filter((c) => c.disagreement).map((c) => ({ team: r.team, assessment: c.assessment, spread: c.spread!, submittedCount: c.submittedCount })))
+            .sort((a, b) => b.spread - a.spread),
+        },
       } satisfies S<'Overview'>)
     }),
   ),
@@ -564,6 +607,15 @@ export const handlers = [
         requireAdmin(user)
         const b = (await body<S<'TeamPatch'>>(request)) ?? {}
         const id = String(params.teamId)
+        // Contract 1.3.0: an empty body, or a blank name or title, is a 400; an empty description clears it.
+        if (b.name === undefined && b.projectTitle === undefined && (b.description === undefined || b.description === null)) {
+          throw new Problem(400, 'validation-failed', 'Nothing to change.')
+        }
+        const errors = [
+          ...(b.name !== undefined && !b.name.trim() ? [{ field: 'name', message: 'must not be blank' }] : []),
+          ...(b.projectTitle !== undefined && !b.projectTitle.trim() ? [{ field: 'projectTitle', message: 'must not be blank' }] : []),
+        ]
+        if (errors.length) throw new Problem(400, 'validation-failed', 'Give the team a name and a project title.', { errors })
         store.mutate((s) => {
           if (b.name && s.teams.some((t) => t.id !== id && t.name.toLowerCase() === b.name!.trim().toLowerCase())) {
             throw new DemoError(409, `There is already a Team ${b.name.trim()}.`, 'team-name-taken')
@@ -689,6 +741,15 @@ export const handlers = [
               throw new DemoError(409, `${r.firstName} ${r.lastName} has submitted evaluations for this team, so they stay on it with the same role.`, 'reviewer-has-submissions')
             }
           }
+          // Contract 1.3.0: a final team grade keeps its reviewers.
+          for (const a of ASSESSMENTS) {
+            if (logic.teamAssessment(s, id, a.key).grade === null) continue
+            const before = t.members.filter((m) => m.role === a.role).map((m) => m.reviewerId).sort().join()
+            const after = next.filter((x) => x.role === a.role).map((x) => x.reviewerId).sort().join()
+            if (before !== after) {
+              throw new Problem(409, 'assessment-final', `The ${a.name} grade for Team ${t.name} is already final, so its ${a.role === 'JURY' ? 'jury' : 'advisor'} can't change.`)
+            }
+          }
           const added = next.filter((a) => !t.members.some((m) => m.reviewerId === a.reviewerId))
           const removed = t.members.filter((m) => !next.some((a) => a.reviewerId === m.reviewerId))
           t.members = next.map((a) => ({ reviewerId: a.reviewerId, role: a.role as ReviewerRole }))
@@ -702,6 +763,12 @@ export const handlers = [
               href: '/my-teams',
               read: false,
             })
+            const r = s.reviewers.find((x) => x.id === a.reviewerId)!
+            logic.activity(s, 'assignment', 'Assignment', `${r.firstName} ${r.lastName} joined Team ${t.name} as ${a.role === 'JURY' ? 'a jury member' : 'the advisor'}.`, id)
+          }
+          for (const m of removed) {
+            const r = s.reviewers.find((x) => x.id === m.reviewerId)!
+            logic.activity(s, 'assignment', 'Assignment', `${r.firstName} ${r.lastName} left Team ${t.name}.`, id)
           }
         })
         const t = logic.team(store.getState(), id)
@@ -869,13 +936,16 @@ export const handlers = [
         requireAdmin(user)
         const key = code(params.assessment)
         const b = await body<S<'RubricPut'>>(request)
+        const bad = (b?.criteria ?? []).flatMap((c, i) => (Number.isInteger(c.weight) ? [] : [{ field: `criteria[${i}].weight`, message: 'must be a whole number' }]))
+        if (bad.length) throw new Problem(400, 'validation-failed', 'Weights must be whole numbers.', { errors: bad })
+        if (!b?.criteria?.length) throw new Problem(422, 'rubric-empty', 'A rubric needs at least one criterion.')
         const criteria: Criterion[] = (b?.criteria ?? []).map((c) => ({
           id: c.id ?? '',
           name: c.name,
           weight: c.weight,
           descriptions: [c.descriptions['1'], c.descriptions['2'], c.descriptions['3'], c.descriptions['4']],
         }))
-        store.mutate((s) => logic.saveRubric(s, key, criteria))
+        store.mutate((s) => logic.saveRubric(s, key, criteria, user.kind === 'reviewer' ? user.r.id : null))
         return json(rubricDto(store.getState(), key))
       },
       { write: true },
@@ -961,10 +1031,18 @@ export const handlers = [
   }),
   http.get(
     `${API}/activity`,
-    route(({ user, read }) => {
+    route(({ user, read, request }) => {
       requireAdmin(user)
       const state = read()
-      const items = simulation === 'empty' ? [] : [...state.activity].sort((a, b) => b.at.localeCompare(a.at)).map((a) => activityDto(state, a))
+      const teamId = new URL(request.url).searchParams.get('teamId')
+      if (teamId) logic.team(state, teamId)
+      const items =
+        simulation === 'empty'
+          ? []
+          : [...state.activity]
+              .filter((a) => !teamId || a.teamId === teamId)
+              .sort((a, b) => b.at.localeCompare(a.at))
+              .map((a) => activityDto(state, a))
       return json(page(items))
     }),
   ),

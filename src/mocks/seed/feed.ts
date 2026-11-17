@@ -6,18 +6,20 @@ export interface FeedSpec {
   kind: ActivityKind
   who: string
   text: string
+  /** The team the line is about (team history). */
+  team: string
   /** [days from today, "hh:mm"], or minutes ago for items earlier today. */
   at: [number, string] | { minutesAgo: number }
 }
 
 export const ACTIVITY: FeedSpec[] = [
-  { kind: 'submit', who: 'Lea Mansour', text: 'submitted the Final presentation for Team Epsilon (1 of 3).', at: { minutesAgo: 25 } },
-  { kind: 'edit', who: 'Karim Nassar', text: 'saved a draft of the Advisor assessment for Team Delta, overdue since {due:ADVISOR_ASSESSMENT}.', at: { minutesAgo: 70 } },
-  { kind: 'edit', who: 'Jane Smith', text: 'changed Problem formulation 2 → 3 in her Team Beta final report draft.', at: { minutesAgo: 118 } },
-  { kind: 'schedule', who: 'Schedule', text: 'Team Delta moved to {defense:t-delta}, Room B-204. John Doe is now in two defenses at 09:00.', at: { minutesAgo: 153 } },
-  { kind: 'final', who: 'Team Zeta', text: 'Final presentation grade is final: {grade:t-zeta:FINAL_PRESENTATION}.', at: [-1, '17:15'] },
-  { kind: 'final', who: 'Team Gamma', text: 'final grade computed: {final:t-gamma}.', at: [-1, '16:20'] },
-  { kind: 'release', who: 'You', text: 'released Final presentation results to Team Alpha.', at: [-1, '12:05'] },
+  { kind: 'submit', who: 'Lea Mansour', text: 'submitted the Final presentation for Team Epsilon (1 of 3).', team: 't-epsilon', at: { minutesAgo: 25 } },
+  { kind: 'edit', who: 'Karim Nassar', text: 'saved a draft of the Advisor assessment for Team Delta, overdue since {due:ADVISOR_ASSESSMENT}.', team: 't-delta', at: { minutesAgo: 70 } },
+  { kind: 'edit', who: 'Jane Smith', text: 'changed Problem formulation 2 → 3 in her Team Beta final report draft.', team: 't-beta', at: { minutesAgo: 118 } },
+  { kind: 'schedule', who: 'Schedule', text: 'Team Delta moved to {defense:t-delta}, Room B-204. John Doe is now in two defenses at 09:00.', team: 't-delta', at: { minutesAgo: 153 } },
+  { kind: 'final', who: 'Team Zeta', text: 'Final presentation grade is final: {grade:t-zeta:FINAL_PRESENTATION}.', team: 't-zeta', at: [-1, '17:15'] },
+  { kind: 'final', who: 'Team Gamma', text: 'final grade computed: {final:t-gamma}.', team: 't-gamma', at: [-1, '16:20'] },
+  { kind: 'release', who: 'You', text: 'released Final presentation results to Team Alpha.', team: 't-alpha', at: [-1, '12:05'] },
 ]
 
 export interface NotificationSpec {
@@ -61,5 +63,10 @@ export const NOTIFICATIONS: Record<string, NotificationSpec[]> = {
     { kind: 'release', text: 'Your Final report results are available.', at: [-2, '09:00'], href: '/student', read: true },
     { kind: 'release', text: 'Your Advisor assessment results are available.', at: [-4, '09:00'], href: '/student', read: true },
     { kind: 'schedule', text: 'Your defense is scheduled: {defense:t-alpha}, Amphi A.', at: [-30, '10:00'], href: '/schedule', read: true },
+  ],
+  's-ahmad': [
+    { kind: 'schedule', text: 'Your defense is confirmed: {defense:t-beta}, Amphi A.', at: [0, '09:40'], href: '/schedule', read: false },
+    { kind: 'release', text: 'Your Progress report results are available.', at: [-63, '10:00'], href: '/student', read: true },
+    { kind: 'release', text: 'Your Proposal presentation results are available.', at: [-99, '10:00'], href: '/student', read: true },
   ],
 }

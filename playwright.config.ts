@@ -22,7 +22,8 @@ export default defineConfig({
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], channel, viewport: { width: 1440, height: 900 } },
-      testIgnore: /mobile\.spec\.ts/,
+      // e2e/real/ needs a running stack: playwright.real.config.ts
+      testIgnore: [/mobile\.spec\.ts/, /[\\/]real[\\/]/],
     },
     {
       name: 'mobile',

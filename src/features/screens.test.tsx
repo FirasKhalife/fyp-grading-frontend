@@ -47,10 +47,12 @@ describe('P3 My teams', () => {
   })
 })
 
+const GRID = /^Each cell is the team's grade/
+
 describe('P5 Coordinator overview', () => {
   it('shows the KPIs and the grid', async () => {
     renderApp('/overview', 'rania')
-    expect(await screen.findByRole('table')).toBeInTheDocument()
+    expect(await screen.findByRole('table', { name: GRID }, { timeout: 5000 })).toBeInTheDocument()
     const kpis = screen.getByRole('region', { name: 'Key figures' })
     expect(kpis).toHaveTextContent('62 / 74')
     expect(kpis).toHaveTextContent('90.1')
@@ -60,7 +62,7 @@ describe('P5 Coordinator overview', () => {
   it('moves focus through the grid with arrow keys (one tab stop)', async () => {
     const user = userEvent.setup()
     renderApp('/overview', 'rania')
-    const table = await screen.findByRole('table')
+    const table = await screen.findByRole('table', { name: GRID })
     const tabbable = within(table)
       .getAllByRole('link')
       .filter((l) => l.getAttribute('tabindex') === '0')
@@ -92,7 +94,7 @@ describe('P5 Coordinator overview', () => {
 
   it('has no axe violations', async () => {
     const { container } = renderApp('/overview', 'rania')
-    await screen.findByRole('table')
+    await screen.findByRole('table', { name: GRID })
     await expectNoAxeViolations(container)
   })
 })

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 export function AuthCallbackPage() {
   const navigate = useNavigate()
   const { completeEmailSignIn } = useAuth()
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<string | null>(null)
   const started = useRef(false)
   useEffect(() => {
     if (!oidcEnabled) {
@@ -22,7 +22,7 @@ export function AuthCallbackPage() {
     started.current = true
     completeEmailSignIn()
       .then((to) => navigate(to, { replace: true }))
-      .catch(() => setFailed(true))
+      .catch((e: unknown) => setFailed(e instanceof Error && e.message ? e.message : 'The demo is starting up, try again in a minute.'))
   }, [navigate, completeEmailSignIn])
   return (
     <Main>
@@ -35,7 +35,7 @@ export function AuthCallbackPage() {
             </Button>
           }
         >
-          The demo is starting up, try again in a minute.
+          {failed}
         </ErrorState>
       ) : (
         <p role="status" className="flex items-center gap-3">
