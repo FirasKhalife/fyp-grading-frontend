@@ -7,3 +7,8 @@ playwright-report
 blob-report
 coverage
 .git
+.github
+.idea
+.vscode
+e2e
+*.md
