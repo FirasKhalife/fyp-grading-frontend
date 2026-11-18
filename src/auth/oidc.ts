@@ -2,12 +2,16 @@ import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts'
 
 /**
  * Real sign-in against Keycloak (realm `assay`, public client `assay-spa`), enabled when
- * VITE_OIDC_AUTHORITY is set, e.g. https://demo.example.dev/realms/assay.
+ * VITE_OIDC_AUTHORITY is set, e.g. https://demo.example.dev/realms/assay. A path (`/realms/assay`) means
+ * Keycloak on the app's own origin, behind the same edge proxy: the published image then works on any domain.
  * - Persona cards: a token request with the persona's username and the shared demo password
  *   (VITE_DEMO_PASSWORD). These accounts are public by design; the password is not a secret.
  * - "Sign in with email": Authorization Code + PKCE, with a login_hint.
  */
-const authority = import.meta.env.VITE_OIDC_AUTHORITY as string | undefined
+const configuredAuthority = import.meta.env.VITE_OIDC_AUTHORITY as string | undefined
+const authority = configuredAuthority?.startsWith('/')
+  ? `${window.location.origin}${configuredAuthority}`
+  : configuredAuthority
 const clientId = (import.meta.env.VITE_OIDC_CLIENT_ID as string | undefined) ?? 'assay-spa'
 const demoPassword = (import.meta.env.VITE_DEMO_PASSWORD as string | undefined) ?? ''
 
