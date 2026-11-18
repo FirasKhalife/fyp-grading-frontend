@@ -12,7 +12,7 @@ import { SkipLink } from '@/components/shell/AppShell'
 import { useTheme } from '@/components/shell/theme'
 
 const REPO_URL = 'https://github.com/FirasKhalife/fyp-grading-frontend'
-const ARCH_URL = 'https://github.com/FirasKhalife/fyp-grading-docker-compose'
+const ARCH_URL = 'https://firaskhalife.dev/projects/grading'
 
 const STEP_FILL = ['bg-l4 text-l4i', 'bg-l3 text-l3i', 'bg-l2 text-l2i']
 
