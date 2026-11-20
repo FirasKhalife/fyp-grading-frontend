@@ -26,7 +26,9 @@ export function TeamsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <PageTitle>Teams and people</PageTitle>
-          <p className="m-0 text-ink2">Create teams, add students, and assign reviewers. Each team needs 1 to 5 reviewers, with at least 1 jury member and 1 advisor.</p>
+          <p className="m-0 text-ink2">
+            Create teams, add students, and assign reviewers. Each team needs 1 to 5 reviewers, with at least 1 jury member and 1 advisor.
+          </p>
         </div>
         {!creating && (
           <Button onClick={() => setCreating(true)}>
@@ -145,7 +147,11 @@ function TeamCard({ t }: { t: TeamRow }) {
           </>
         )}
         {confirmDelete && (
-          <div role="alertdialog" aria-label={`Delete Team ${t.team.name}?`} className="flex flex-col gap-2.5 rounded-[12px] border-2 border-sel bg-pri-soft p-3.5">
+          <div
+            role="alertdialog"
+            aria-label={`Delete Team ${t.team.name}?`}
+            className="flex flex-col gap-2.5 rounded-[12px] border-2 border-sel bg-pri-soft p-3.5"
+          >
             <p className="m-0 text-[14px]">
               <strong>Delete Team {t.team.name}?</strong> Its students are removed too. This can't be undone in this copy (Reset my demo restores it).
             </p>

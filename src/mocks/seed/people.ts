@@ -56,8 +56,7 @@ export function seedTeams(): Team[] {
       id: 't-alpha',
       name: 'Alpha',
       projectTitle: 'Smart irrigation controller with soil-moisture forecasting',
-      description:
-        'A field node reads soil moisture and weather, forecasts the next 48 hours, and waters only when the forecast says the soil will dry out.',
+      description: 'A field node reads soil moisture and weather, forecasts the next 48 hours, and waters only when the forecast says the soil will dry out.',
       members: [advisor('r-emily'), ...jury('r-jane', 'r-john', 'r-lea')],
       defense: { start: isoAt(-1, '09:00'), minutes: 40, room: 'Amphi A' },
     },
@@ -65,8 +64,7 @@ export function seedTeams(): Team[] {
       id: 't-beta',
       name: 'Beta',
       projectTitle: 'Clinic queue management with SMS notifications',
-      description:
-        'Patients take a queue number at reception or online, and get an SMS when their turn is close, so the waiting room stays small.',
+      description: 'Patients take a queue number at reception or online, and get an SMS when their turn is close, so the waiting room stays small.',
       members: [advisor('r-emily'), ...jury('r-jane', 'r-john', 'r-michael')],
       defense: { start: isoAt(1, '09:00'), minutes: 40, room: 'Amphi A' },
     },
@@ -74,8 +72,7 @@ export function seedTeams(): Team[] {
       id: 't-gamma',
       name: 'Gamma',
       projectTitle: 'Arabic handwriting OCR for archived documents',
-      description:
-        'A recognition pipeline for scanned handwritten Arabic records, with a review screen where archivists correct low-confidence words.',
+      description: 'A recognition pipeline for scanned handwritten Arabic records, with a review screen where archivists correct low-confidence words.',
       members: [advisor('r-lea'), ...jury('r-rania', 'r-karim', 'r-michael')],
       defense: { start: isoAt(-1, '11:00'), minutes: 40, room: 'Amphi A' },
     },
@@ -83,8 +80,7 @@ export function seedTeams(): Team[] {
       id: 't-delta',
       name: 'Delta',
       projectTitle: 'Campus carpool matching app',
-      description:
-        'Students and staff offer and find rides to campus. Matching uses home area and timetable, and the app splits fuel costs.',
+      description: 'Students and staff offer and find rides to campus. Matching uses home area and timetable, and the app splits fuel costs.',
       members: [advisor('r-karim'), ...jury('r-john', 'r-emily')],
       defense: { start: isoAt(1, '09:00'), minutes: 40, room: 'Room B-204' },
     },
@@ -92,8 +88,7 @@ export function seedTeams(): Team[] {
       id: 't-epsilon',
       name: 'Epsilon',
       projectTitle: 'Energy monitoring dashboard for university buildings',
-      description:
-        'Smart meters in three campus buildings feed a dashboard that flags waste, such as lights and air conditioning left on overnight.',
+      description: 'Smart meters in three campus buildings feed a dashboard that flags waste, such as lights and air conditioning left on overnight.',
       members: [advisor('r-john'), ...jury('r-jane', 'r-lea', 'r-karim')],
       defense: { start: isoAt(0, '09:00'), minutes: 40, room: 'Amphi A' },
     },
@@ -101,8 +96,7 @@ export function seedTeams(): Team[] {
       id: 't-zeta',
       name: 'Zeta',
       projectTitle: 'Sign-language gesture recognition on a microcontroller',
-      description:
-        'A glove with flex and motion sensors recognises 40 signs of Lebanese Sign Language on a microcontroller and speaks them aloud.',
+      description: 'A glove with flex and motion sensors recognises 40 signs of Lebanese Sign Language on a microcontroller and speaks them aloud.',
       members: [advisor('r-michael'), ...jury('r-emily', 'r-lea', 'r-john')],
       defense: { start: isoAt(-1, '14:00'), minutes: 40, room: 'Room B-204' },
     },

@@ -148,7 +148,10 @@ function RoleSwitcher({ left }: { left: string }) {
                       cur && 'border-2 border-pri bg-pri-soft',
                     )}
                   >
-                    <span aria-hidden="true" className={cn('flex size-10 flex-none items-center justify-center rounded-full text-[14px] font-semibold', AVATAR_CLASS[p.id])}>
+                    <span
+                      aria-hidden="true"
+                      className={cn('flex size-10 flex-none items-center justify-center rounded-full text-[14px] font-semibold', AVATAR_CLASS[p.id])}
+                    >
                       {p.firstName[0]}
                       {p.lastName[0]}
                     </span>

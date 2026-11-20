@@ -8,12 +8,7 @@ import type { Level } from '@/domain/types'
  * `preferred` levels (from the design boards) are kept where possible and nudged to hit the target.
  * `seed` varies which criteria move, so different reviewers don't get identical patterns.
  */
-export function solveLevels(
-  weights: readonly number[],
-  target: number,
-  preferred?: readonly Level[],
-  seed = 1,
-): Level[] {
+export function solveLevels(weights: readonly number[], target: number, preferred?: readonly Level[], seed = 1): Level[] {
   const goal = Math.round(target * 4)
   if (Math.abs(goal - target * 4) > 1e-6) throw new Error(`Target ${target} is not reachable (× 4 must be whole)`)
   const base = Math.max(0, Math.min(4, Math.round(target / 25))) as Level

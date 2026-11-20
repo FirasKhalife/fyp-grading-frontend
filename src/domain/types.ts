@@ -3,12 +3,7 @@
  * contract lands, the repository maps the generated DTOs onto these types, so screens don't change.
  */
 
-export type AssessmentKey =
-  | 'PROPOSAL_PRESENTATION'
-  | 'PROGRESS_REPORT'
-  | 'ADVISOR_ASSESSMENT'
-  | 'FINAL_REPORT'
-  | 'FINAL_PRESENTATION'
+export type AssessmentKey = 'PROPOSAL_PRESENTATION' | 'PROGRESS_REPORT' | 'ADVISOR_ASSESSMENT' | 'FINAL_REPORT' | 'FINAL_PRESENTATION'
 
 export type ReviewerRole = 'JURY' | 'ADVISOR'
 

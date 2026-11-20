@@ -45,7 +45,10 @@ test('a new tab continues as the same persona on the same copy, without a token 
 test('Switch role replaces the remembered persona; sign-out clears it', async ({ page, context }) => {
   await enter(page, 'Jane')
   await page.getByRole('button', { name: 'Switch role' }).click()
-  await page.getByRole('dialog', { name: 'Switch role' }).getByRole('button', { name: /Rania Haddad/ }).click()
+  await page
+    .getByRole('dialog', { name: 'Switch role' })
+    .getByRole('button', { name: /Rania Haddad/ })
+    .click()
   await expect(page).toHaveURL(/\/overview$/)
   expect(await remembered(page)).toBe('rania')
 

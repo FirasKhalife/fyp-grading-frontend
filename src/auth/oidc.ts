@@ -9,9 +9,7 @@ import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts'
  * - "Sign in with email": Authorization Code + PKCE, with a login_hint.
  */
 const configuredAuthority = import.meta.env.VITE_OIDC_AUTHORITY as string | undefined
-const authority = configuredAuthority?.startsWith('/')
-  ? `${window.location.origin}${configuredAuthority}`
-  : configuredAuthority
+const authority = configuredAuthority?.startsWith('/') ? `${window.location.origin}${configuredAuthority}` : configuredAuthority
 const clientId = (import.meta.env.VITE_OIDC_CLIENT_ID as string | undefined) ?? 'assay-spa'
 const demoPassword = (import.meta.env.VITE_DEMO_PASSWORD as string | undefined) ?? ''
 

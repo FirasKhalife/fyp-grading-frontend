@@ -64,7 +64,8 @@ export function useLiveUpdates() {
         if (ev.event === 'notification' || ev.event === 'unread-count') void qc.invalidateQueries({ queryKey: qk.notifications(viewer.userId) })
         if (ev.event === 'notification') {
           // A grade became final, results were released, a slot moved: the lists that show those.
-          for (const key of [qk.myTeams(viewer.userId), qk.student(viewer.userId), qk.overview, qk.schedule(viewer.userId)]) void qc.invalidateQueries({ queryKey: key })
+          for (const key of [qk.myTeams(viewer.userId), qk.student(viewer.userId), qk.overview, qk.schedule(viewer.userId)])
+            void qc.invalidateQueries({ queryKey: key })
           void qc.invalidateQueries({ queryKey: ['assay', 'team'] })
         }
         if (ev.event === 'activity') {

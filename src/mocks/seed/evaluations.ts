@@ -42,7 +42,9 @@ export const EVALUATIONS: Record<string, TeamSpec> = {
         overall: 'Clear objectives and a credible plan. Tighten the constraints section before the progress report.',
         comments: { 3: 'Power and water-cost constraints are named but not quantified yet.' },
       }),
-      sub('r-john', 85, [-111, '17:05'], { comments: { 1: 'Good survey of commercial controllers; add one academic reference on soil-moisture forecasting.' } }),
+      sub('r-john', 85, [-111, '17:05'], {
+        comments: { 1: 'Good survey of commercial controllers; add one academic reference on soil-moisture forecasting.' },
+      }),
       sub('r-lea', 86.25, [-110, '09:30'], { comments: { 6: 'Confident delivery, and every member spoke.' } }),
     ],
     PROGRESS_REPORT: [
@@ -60,7 +62,9 @@ export const EVALUATIONS: Record<string, TeamSpec> = {
       }),
     ],
     FINAL_REPORT: [
-      sub('r-jane', 87.5, [-3, '17:30'], { comments: { 6: 'The decision matrix for the controller board is convincing.', 12: 'Two web sources have no access date.' } }),
+      sub('r-jane', 87.5, [-3, '17:30'], {
+        comments: { 6: 'The decision matrix for the controller board is convincing.', 12: 'Two web sources have no access date.' },
+      }),
       sub('r-john', 86.25, [-3, '19:10'], { comments: { 8: 'Add the forecast error per week, not only the average.' } }),
       sub('r-lea', 88.75, [-2, '08:45'], {
         overall: 'A well-argued alternatives chapter. Referencing style is inconsistent in chapter 5.',
@@ -73,7 +77,10 @@ export const EVALUATIONS: Record<string, TeamSpec> = {
         status: 'SUBMITTED',
         levels: [4, 3, 4, 3, 3, 4, 4, 3, 4, 3],
         at: [-1, '10:05'],
-        comments: { 5: 'The live demo with the soil probe worked first time, and the forecasting fallback was a nice touch.', 8: 'Everyone spoke, and the questions on sensor calibration were answered precisely.' },
+        comments: {
+          5: 'The live demo with the soil probe worked first time, and the forecasting fallback was a nice touch.',
+          8: 'Everyone spoke, and the questions on sensor calibration were answered precisely.',
+        },
       },
       {
         reviewer: 'r-john',
@@ -118,9 +125,7 @@ export const EVALUATIONS: Record<string, TeamSpec> = {
       sub('r-michael', 65, [-75, '16:00'], { comments: { 3: 'The SMS gateway is still mocked; test with a real provider soon.' } }),
       sub('r-jane', 75, [-76, '13:20'], { comments: { 0: 'Minutes are kept, but actions have no owners.' } }),
     ],
-    ADVISOR_ASSESSMENT: [
-      sub('r-emily', 80, [-6, '17:00'], { overall: 'Steady work all year. Ahmad and Yara carried the backend; spread it more next time.' }),
-    ],
+    ADVISOR_ASSESSMENT: [sub('r-emily', 80, [-6, '17:00'], { overall: 'Steady work all year. Ahmad and Yara carried the backend; spread it more next time.' })],
     FINAL_REPORT: [
       sub('r-john', 77.5, [-2, '18:20'], { comments: { 5: 'GSM standards are listed in an annex but never used.' } }),
       sub('r-michael', 75, [-1, '20:05']),

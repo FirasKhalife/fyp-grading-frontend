@@ -22,29 +22,19 @@ import type {
 } from '@/api/views'
 import { ASSESSMENTS, assessmentDef } from '@/domain/assessments'
 import { auditText } from '@/domain/audit'
-import type {
-  Assessment,
-  AssessmentKey,
-  AuditEntry,
-  Criterion,
-  Evaluation,
-  Level,
-  NotificationKind,
-  Reviewer,
-  ReviewerRole,
-  Team,
-} from '@/domain/types'
+import type { Assessment, AssessmentKey, AuditEntry, Criterion, Evaluation, Level, NotificationKind, Reviewer, ReviewerRole, Team } from '@/domain/types'
+import { addMinutes, daysFromToday, fmtDay, fmtTime, isoDay, now, parseLocal, toIsoDateTime } from '@/lib/demo-clock'
 import {
-  addMinutes,
-  daysFromToday,
-  fmtDay,
-  fmtTime,
-  isoDay,
-  now,
-  parseLocal,
-  toIsoDateTime,
-} from '@/lib/demo-clock'
-import { DISAGREEMENT_THRESHOLD, disagrees, finalGrade, gradeDistribution, formatScore, reviewerScore, spread, teamAssessmentGrade, weightsTotal } from '@/lib/scoring'
+  DISAGREEMENT_THRESHOLD,
+  disagrees,
+  finalGrade,
+  gradeDistribution,
+  formatScore,
+  reviewerScore,
+  spread,
+  teamAssessmentGrade,
+  weightsTotal,
+} from '@/lib/scoring'
 import { dueOf, nextId, type DemoState } from './db'
 
 /** A business-rule refusal. `code` is the contract's stable problem code. */
@@ -284,8 +274,7 @@ export function overviewView(state: DemoState): OverviewView {
     const cells = ASSESSMENTS.map((a) => teamAssessment(state, t.id, a.key))
     const final = teamFinal(state, t.id)
     const finalVisible = cells.every((c) => c.release)
-    const attention =
-      cells.some((c) => c.overdue || c.disagreement) || confl.some((c) => c.teams.some((x) => x.id === t.id))
+    const attention = cells.some((c) => c.overdue || c.disagreement) || confl.some((c) => c.teams.some((x) => x.id === t.id))
     return { team: t, cells, final, finalVisible, needs: final === null ? needsText(cells) : '', attention }
   })
   const all = rows.flatMap((r) => r.cells)
@@ -329,7 +318,9 @@ export function overviewView(state: DemoState): OverviewView {
       distribution: gradeDistribution(finals.map((r) => r.final as number)),
       disagreements: rows
         .flatMap((r) =>
-          r.cells.filter((c) => c.disagreement).map((c) => ({ team: { id: r.team.id, name: r.team.name }, assessment: c.assessment, spread: c.spread!, submitted: c.submitted })),
+          r.cells
+            .filter((c) => c.disagreement)
+            .map((c) => ({ team: { id: r.team.id, name: r.team.name }, assessment: c.assessment, spread: c.spread!, submitted: c.submitted })),
         )
         .sort((a, b) => b.spread - a.spread),
     },
@@ -365,9 +356,7 @@ export function rubricsView(state: DemoState): RubricsView {
   const submittedCount: RubricsView['submittedCount'] = {}
   for (const a of ASSESSMENTS) {
     const subs = state.evaluations.filter((e) => e.assessment === a.key && e.status === 'SUBMITTED')
-    const byTeam = state.teams
-      .map((t) => ({ team: t.name, count: subs.filter((e) => e.teamId === t.id).length }))
-      .filter((x) => x.count > 0)
+    const byTeam = state.teams.map((t) => ({ team: t.name, count: subs.filter((e) => e.teamId === t.id).length })).filter((x) => x.count > 0)
     submittedCount[a.key] = { total: subs.length, byTeam }
   }
   const edited: RubricsView['edited'] = Object.fromEntries(
@@ -439,16 +428,12 @@ export function studentHomeView(state: DemoState, studentId: string): StudentHom
       // Nothing about scores leaves the "server" before release.
       grade: released ? info.grade : null,
       reviewers: released ? subs.map((x) => ({ reviewer: x.reviewer, score: x.score })) : [],
-      overall: released
-        ? subs.filter((x) => x.evaluation?.overallComment).map((x) => ({ reviewer: x.reviewer, text: x.evaluation!.overallComment }))
-        : [],
+      overall: released ? subs.filter((x) => x.evaluation?.overallComment).map((x) => ({ reviewer: x.reviewer, text: x.evaluation!.overallComment })) : [],
       criteria: released
         ? r.criteria.map((c: Criterion) => ({
             criterion: c,
             levels: subs.map((x) => ({ reviewer: x.reviewer, level: (x.evaluation!.levels[c.id] ?? null) as Level | null })),
-            comments: subs
-              .filter((x) => x.evaluation!.comments[c.id])
-              .map((x) => ({ reviewer: x.reviewer, text: x.evaluation!.comments[c.id]! })),
+            comments: subs.filter((x) => x.evaluation!.comments[c.id]).map((x) => ({ reviewer: x.reviewer, text: x.evaluation!.comments[c.id]! })),
           }))
         : [],
       state: st,
@@ -607,7 +592,13 @@ export function submitEvaluation(state: DemoState, userId: string, teamId: strin
     const g = formatScore(info.grade)
     const apart = info.disagreement && info.spread !== null ? ` Reviewers disagree by ${formatScore(info.spread)} points.` : ''
     activity(state, 'final', `Team ${view.team.name}`, `${view.assessment.name} grade is final: ${g}.${apart}`, teamId)
-    notify(state, [...admins(state), ...teamReviewers], 'final', `${view.assessment.name} for Team ${view.team.name} is final: ${g}.${apart}`, `/teams/${teamId}`)
+    notify(
+      state,
+      [...admins(state), ...teamReviewers],
+      'final',
+      `${view.assessment.name} for Team ${view.team.name} is final: ${g}.${apart}`,
+      `/teams/${teamId}`,
+    )
   }
   const fin = teamFinal(state, teamId)
   if (fin !== null && wasFinalBefore === null) {
@@ -640,7 +631,8 @@ export function markRead(state: DemoState, userId: string, id: string | 'all') {
 
 export function saveRubric(state: DemoState, key: AssessmentKey, criteria: Criterion[], userId: string | null = null) {
   if (!criteria.length) throw new DemoError(400, 'A rubric needs at least one criterion.')
-  if (weightsTotal(criteria.map((c) => c.weight)) !== 100) throw new DemoError(422, `Weights must add up to 100%. They add up to ${weightsTotal(criteria.map((c) => c.weight))}%.`, 'weights-not-100')
+  if (weightsTotal(criteria.map((c) => c.weight)) !== 100)
+    throw new DemoError(422, `Weights must add up to 100%. They add up to ${weightsTotal(criteria.map((c) => c.weight))}%.`, 'weights-not-100')
   if (criteria.some((c) => !c.name.trim())) throw new DemoError(400, 'Every criterion needs a name.')
   const r = rubric(state, key)
   r.criteria = criteria.map((c) => ({ ...c, id: c.id || nextId(state, 'c') }))
@@ -723,7 +715,13 @@ export function assignReviewer(state: DemoState, teamId: string, reviewerId: str
   if (t.members.length >= 5) throw new DemoError(422, 'A team can have at most 5 reviewers.', 'composition-invalid')
   t.members.push({ reviewerId, role })
   const who = reviewer(state, reviewerId)
-  activity(state, 'assignment', 'Assignment', `${who.firstName} ${who.lastName} joined Team ${t.name} as ${role === 'JURY' ? 'a jury member' : 'the advisor'}.`, teamId)
+  activity(
+    state,
+    'assignment',
+    'Assignment',
+    `${who.firstName} ${who.lastName} joined Team ${t.name} as ${role === 'JURY' ? 'a jury member' : 'the advisor'}.`,
+    teamId,
+  )
   notify(state, [reviewerId], 'team', `You were assigned to Team ${t.name} as ${role === 'JURY' ? 'a jury member' : 'the advisor'}.`, '/my-teams')
 }
 
@@ -735,7 +733,11 @@ export function unassignReviewer(state: DemoState, teamId: string, reviewerId: s
   const after = t.members.filter((m) => m.reviewerId !== reviewerId)
   const check = composition({ ...t, members: after })
   if (check.jury < 1 || check.advisors < 1) {
-    throw new DemoError(422, `Removing them would leave the team with ${check.jury < 1 ? 'no jury member' : 'no advisor'}. Assign a replacement first.`, 'composition-invalid')
+    throw new DemoError(
+      422,
+      `Removing them would leave the team with ${check.jury < 1 ? 'no jury member' : 'no advisor'}. Assign a replacement first.`,
+      'composition-invalid',
+    )
   }
   t.members = after
   state.evaluations = state.evaluations.filter((e) => !(e.teamId === teamId && e.reviewerId === reviewerId))

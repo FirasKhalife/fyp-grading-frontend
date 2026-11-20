@@ -17,26 +17,12 @@ const STYLE: Record<StatusKind, { cls: string; icon: IconName | null; text?: str
   plain: { cls: 'border border-line bg-surface text-ink2 font-medium', icon: null },
 }
 
-export function StatusChip({
-  kind,
-  children,
-  icon,
-  className,
-}: {
-  kind: StatusKind
-  children?: ReactNode
-  icon?: IconName | null
-  className?: string
-}) {
+export function StatusChip({ kind, children, icon, className }: { kind: StatusKind; children?: ReactNode; icon?: IconName | null; className?: string }) {
   const s = STYLE[kind]
   const ic = icon === undefined ? s.icon : icon
   return (
     <span
-      className={cn(
-        'inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13px] font-semibold leading-none',
-        s.cls,
-        className,
-      )}
+      className={cn('inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13px] font-semibold leading-none', s.cls, className)}
     >
       {ic && <Icon name={ic} size={14} />}
       {children ?? s.text}

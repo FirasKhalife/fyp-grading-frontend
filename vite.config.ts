@@ -21,6 +21,25 @@ export default defineConfig({
     testTimeout: 20_000,
     // recharts (with its d3 modules) is hundreds of small ES modules: pre-bundled, the overview and its insights
     // load in a fraction of the time, so their first render no longer nears the 5 s findBy limit in a parallel run.
-    deps: { optimizer: { client: { enabled: true, include: ['recharts', 'radix-ui', 'react-router', '@tanstack/react-query', 'sonner', 'oidc-client-ts', 'react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'] } } },
+    deps: {
+      optimizer: {
+        client: {
+          enabled: true,
+          include: [
+            'recharts',
+            'radix-ui',
+            'react-router',
+            '@tanstack/react-query',
+            'sonner',
+            'oidc-client-ts',
+            'react',
+            'react-dom',
+            'react-dom/client',
+            'react/jsx-runtime',
+            'react/jsx-dev-runtime',
+          ],
+        },
+      },
+    },
   },
 })

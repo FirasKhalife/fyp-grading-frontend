@@ -55,16 +55,65 @@ export const routes: RouteObject[] = [
         element: <AppShell />,
         errorElement: <CrashPage />,
         children: [
-          { path: '/my-teams', element: <RequireRole roles={reviewers} audience="reviewer"><MyTeamsPage /></RequireRole> },
-          { path: '/grade/:teamId/:assessment', element: <RequireRole roles={reviewers} audience="reviewer"><GradingPage /></RequireRole> },
-          { path: '/overview', element: <RequireRole roles={admin} audience="admin"><OverviewPage /></RequireRole> },
-          { path: '/teams', element: <RequireRole roles={admin} audience="admin"><TeamsPage /></RequireRole> },
-          { path: '/teams/:teamId', element: <RequireRole roles={admin} audience="admin"><TeamDetailPage /></RequireRole> },
+          {
+            path: '/my-teams',
+            element: (
+              <RequireRole roles={reviewers} audience="reviewer">
+                <MyTeamsPage />
+              </RequireRole>
+            ),
+          },
+          {
+            path: '/grade/:teamId/:assessment',
+            element: (
+              <RequireRole roles={reviewers} audience="reviewer">
+                <GradingPage />
+              </RequireRole>
+            ),
+          },
+          {
+            path: '/overview',
+            element: (
+              <RequireRole roles={admin} audience="admin">
+                <OverviewPage />
+              </RequireRole>
+            ),
+          },
+          {
+            path: '/teams',
+            element: (
+              <RequireRole roles={admin} audience="admin">
+                <TeamsPage />
+              </RequireRole>
+            ),
+          },
+          {
+            path: '/teams/:teamId',
+            element: (
+              <RequireRole roles={admin} audience="admin">
+                <TeamDetailPage />
+              </RequireRole>
+            ),
+          },
           { path: '/rubrics', element: <RubricsPage /> },
           { path: '/rubrics/:assessment', element: <RubricsPage /> },
-          { path: '/rubrics/:assessment/edit', element: <RequireRole roles={admin} audience="admin"><RubricEditorPage /></RequireRole> },
+          {
+            path: '/rubrics/:assessment/edit',
+            element: (
+              <RequireRole roles={admin} audience="admin">
+                <RubricEditorPage />
+              </RequireRole>
+            ),
+          },
           { path: '/schedule', element: <SchedulePage /> },
-          { path: '/student', element: <RequireRole roles={['STUDENT']} audience="student"><StudentHomePage /></RequireRole> },
+          {
+            path: '/student',
+            element: (
+              <RequireRole roles={['STUDENT']} audience="student">
+                <StudentHomePage />
+              </RequireRole>
+            ),
+          },
           { path: '/resetting', element: <ResetInProgressPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],

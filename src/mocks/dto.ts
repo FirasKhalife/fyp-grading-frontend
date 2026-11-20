@@ -113,7 +113,15 @@ export function teamAssessmentDto(state: DemoState, teamId: string, key: Assessm
     spread: score(i.spread),
     disagreement: revealScores && i.disagreement,
     overdue: i.overdue,
-    finalizedAt: i.grade !== null ? utc(i.reviewers.map((x) => x.evaluation?.submittedAt ?? '').sort().pop()) : null,
+    finalizedAt:
+      i.grade !== null
+        ? utc(
+            i.reviewers
+              .map((x) => x.evaluation?.submittedAt ?? '')
+              .sort()
+              .pop(),
+          )
+        : null,
     releasedAt: utc(i.release?.at),
     reviewers: i.reviewers.map((x) => ({
       reviewer: person(reviewerById(state, x.reviewer.id)),

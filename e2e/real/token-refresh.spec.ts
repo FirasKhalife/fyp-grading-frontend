@@ -20,7 +20,15 @@ test('live updates keep arriving after the access token expired and the stream r
   const unauthorized: string[] = []
   const t0 = Date.now()
   page.on('response', (r) => {
-    if (r.url().includes('/openid-connect/token')) console.log(`${Math.round((Date.now() - t0) / 1000)}s token ${r.status()} ${r.request().postData()?.match(/grant_type=\w+/)?.[0]}`)
+    if (r.url().includes('/openid-connect/token'))
+      console.log(
+        `${Math.round((Date.now() - t0) / 1000)}s token ${r.status()} ${
+          r
+            .request()
+            .postData()
+            ?.match(/grant_type=\w+/)?.[0]
+        }`,
+      )
     if (r.url().includes('/api/notifications/stream')) streams.push(r.status())
     if (r.url().startsWith(GATEWAY) && r.status() === 401) unauthorized.push(r.url())
   })
@@ -57,7 +65,11 @@ test('live updates keep arriving after the access token expired and the stream r
   expect((await credentials(jane)).session).toBe(session)
   const assignments = await api<{ teams: { team: { id: string; name: string } }[] }>(jane, 'GET', '/api/me/assignments')
   const beta = assignments.body.teams.find((t) => t.team.name === 'Beta')!.team.id
-  const draft = await api<{ criteria: { criterionId: string; level: number | null; comment: string | null }[] }>(jane, 'GET', `/api/my-evaluations/${beta}/FINAL_REPORT`)
+  const draft = await api<{ criteria: { criterionId: string; level: number | null; comment: string | null }[] }>(
+    jane,
+    'GET',
+    `/api/my-evaluations/${beta}/FINAL_REPORT`,
+  )
   const body = { criteria: draft.body.criteria.map((c) => ({ criterionId: c.criterionId, level: c.level ?? 3, comment: c.comment })) }
   expect((await api(jane, 'POST', `/api/my-evaluations/${beta}/FINAL_REPORT/submit`, body)).status).toBe(200)
   await ctx.close()

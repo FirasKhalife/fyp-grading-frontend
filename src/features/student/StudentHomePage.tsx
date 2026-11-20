@@ -39,7 +39,9 @@ function StudentHome({ v }: { v: StudentHomeView }) {
   const allReleased = v.releasedCount === ASSESSMENTS.length
   const latestIsRecent = v.latestRelease && daysFromToday(v.latestRelease.at) >= -1
   const latestName = v.latestRelease ? ASSESSMENTS.find((a) => a.key === v.latestRelease!.assessment)?.name : null
-  const latestOpen = results.findIndex((r) => r.release && v.latestRelease && r.release.at === v.latestRelease.at && r.assessment.key === v.latestRelease.assessment)
+  const latestOpen = results.findIndex(
+    (r) => r.release && v.latestRelease && r.release.at === v.latestRelease.at && r.assessment.key === v.latestRelease.assessment,
+  )
   const [open, setOpen] = useState<string[]>(latestIsRecent && latestOpen >= 0 ? [`res-${latestOpen}`] : [])
   const def = team.defense
 
@@ -64,9 +66,7 @@ function StudentHome({ v }: { v: StudentHomeView }) {
           <p className="m-0 text-[18px] leading-[27px] text-ink2">{team.projectTitle}</p>
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[14px]">
             <dt className="text-muted">Team</dt>
-            <dd className="m-0">
-              {v.teammates.map((s) => `${s.firstName} ${s.lastName}${s.id === v.me.id ? ' (you)' : ''}`).join(', ')}
-            </dd>
+            <dd className="m-0">{v.teammates.map((s) => `${s.firstName} ${s.lastName}${s.id === v.me.id ? ' (you)' : ''}`).join(', ')}</dd>
             <dt className="text-muted">Advisor</dt>
             <dd className="m-0">{v.advisors.map((p) => p.name).join(', ')}</dd>
             <dt className="text-muted">Jury</dt>
@@ -90,10 +90,16 @@ function StudentHome({ v }: { v: StudentHomeView }) {
                     {results.map((r) => (
                       <tr key={r.assessment.key} className="border-t border-line">
                         <th scope="row" className="py-1.5 text-left font-medium">
-                          {r.assessment.shortName === 'Final pres.' ? 'Final presentation' : r.assessment.shortName === 'Progress' ? 'Progress report' : r.assessment.shortName}
+                          {r.assessment.shortName === 'Final pres.'
+                            ? 'Final presentation'
+                            : r.assessment.shortName === 'Progress'
+                              ? 'Progress report'
+                              : r.assessment.shortName}
                         </th>
                         <td className="mono py-1.5 text-right">
-                          {countsTowardFinal(r.assessment.weight) ? `${formatScore(r.grade ?? 0)} × ${r.assessment.weight}%` : `${formatScore(r.grade ?? 0)} · not counted`}
+                          {countsTowardFinal(r.assessment.weight)
+                            ? `${formatScore(r.grade ?? 0)} × ${r.assessment.weight}%`
+                            : `${formatScore(r.grade ?? 0)} · not counted`}
                         </td>
                         <td className="mono w-14 py-1.5 text-right font-semibold">{(((r.grade ?? 0) * r.assessment.weight) / 100).toFixed(2)}</td>
                       </tr>
@@ -103,7 +109,10 @@ function StudentHome({ v }: { v: StudentHomeView }) {
               </>
             ) : (
               <div className="flex items-start gap-3">
-                <span aria-hidden="true" className="flex size-11 flex-none items-center justify-center rounded-ctl border-2 border-dashed border-line2 text-muted">
+                <span
+                  aria-hidden="true"
+                  className="flex size-11 flex-none items-center justify-center rounded-ctl border-2 border-dashed border-line2 text-muted"
+                >
                   <Icon name="lock" size={18} />
                 </span>
                 <p className="m-0 text-[14px] leading-[21px] text-ink2">
@@ -336,4 +345,3 @@ function StudentSkeleton() {
     </Main>
   )
 }
-

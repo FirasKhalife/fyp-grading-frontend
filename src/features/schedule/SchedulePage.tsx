@@ -220,7 +220,12 @@ function SlotCard({ s, editable }: { s: ScheduleSlot; editable: boolean }) {
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content sideOffset={6} collisionPadding={12} aria-label={`Change Team ${s.team.name}'s slot`} className="z-50 w-[300px] rounded-card border border-line bg-surface p-4 text-ink shadow-pop">
+        <Popover.Content
+          sideOffset={6}
+          collisionPadding={12}
+          aria-label={`Change Team ${s.team.name}'s slot`}
+          className="z-50 w-[300px] rounded-card border border-line bg-surface p-4 text-ink shadow-pop"
+        >
           <SlotForm team={s.team} start={s.slot.start} room={s.slot.room} />
         </Popover.Content>
       </Popover.Portal>
@@ -299,7 +304,13 @@ function AddSlot({ data }: { data: ScheduleView }) {
         </Button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Add defense slot" className="z-50 w-[300px] rounded-card border border-line bg-surface p-4 text-ink shadow-pop">
+        <Popover.Content
+          align="end"
+          sideOffset={6}
+          collisionPadding={12}
+          aria-label="Add defense slot"
+          className="z-50 w-[300px] rounded-card border border-line bg-surface p-4 text-ink shadow-pop"
+        >
           {unslotted.length ? (
             <SlotForm teams={unslotted} start={`${data.days[2]}T14:00:00`} room="Amphi A" />
           ) : (
@@ -406,7 +417,17 @@ function ListView({ slots }: { slots: ScheduleSlot[] }) {
               <td className="border-t border-line p-3">{s.slot.room}</td>
               <td className="border-t border-line p-3">{s.jury.map((j) => j.name).join(', ')}</td>
               <td className="border-t border-line p-3">
-                {s.conflict ? <StatusChip kind="overdue" icon="warn">Conflict</StatusChip> : s.done ? <StatusChip kind="submitted" icon="check">Done</StatusChip> : <StatusChip kind="plain">Scheduled</StatusChip>}
+                {s.conflict ? (
+                  <StatusChip kind="overdue" icon="warn">
+                    Conflict
+                  </StatusChip>
+                ) : s.done ? (
+                  <StatusChip kind="submitted" icon="check">
+                    Done
+                  </StatusChip>
+                ) : (
+                  <StatusChip kind="plain">Scheduled</StatusChip>
+                )}
               </td>
             </tr>
           ))}

@@ -55,7 +55,8 @@ export function cellModel(row: GridRow, c: TeamAssessmentInfo): CellModel {
   }
 }
 
-const CELL = 'flex h-full min-h-[62px] flex-col justify-center gap-1 rounded-[8px] border border-transparent px-2.5 py-2 no-underline hover:outline-2 hover:outline-offset-1 hover:outline-pri'
+const CELL =
+  'flex h-full min-h-[62px] flex-col justify-center gap-1 rounded-[8px] border border-transparent px-2.5 py-2 no-underline hover:outline-2 hover:outline-offset-1 hover:outline-pri'
 
 /**
  * The team × assessment grid: a real <table> of links with roving focus. Tab enters the grid once;
@@ -104,8 +105,7 @@ export function GradeGrid({ rows, cols, releaseCounts }: { rows: GridRow[]; cols
     <div className="-mx-1.5 overflow-x-auto">
       <table className="w-full min-w-[860px] border-separate border-spacing-1.5">
         <caption className="px-1.5 pb-1.5 text-left text-[13px] text-muted">
-          Each cell is the team's grade for that assessment, with its level band. Open a cell for the reviewer breakdown. Arrow keys move between
-          cells.
+          Each cell is the team's grade for that assessment, with its level band. Open a cell for the reviewer breakdown. Arrow keys move between cells.
         </caption>
         <thead>
           <tr>

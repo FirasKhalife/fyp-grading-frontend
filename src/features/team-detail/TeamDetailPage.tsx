@@ -22,8 +22,7 @@ import { auditText } from '@/domain/audit'
 import { NotFoundPage } from '../utility/UtilityPages'
 import { countsTowardFinal, weightLabel } from '@/lib/weight'
 
-const field =
-  'min-h-11 w-full rounded-ctl border border-line2 bg-surface px-3 py-2.5 text-[15px] leading-[22px] text-ink placeholder:text-muted'
+const field = 'min-h-11 w-full rounded-ctl border border-line2 bg-surface px-3 py-2.5 text-[15px] leading-[22px] text-ink placeholder:text-muted'
 
 /** P6: one team, for the coordinator. */
 export function TeamDetailPage() {
@@ -112,7 +111,11 @@ function TeamDetail({ v }: { v: TeamDetailView }) {
                   {team.defense.room}
                 </p>
                 <p className="m-0 text-[14px] text-ink2">
-                  Jury: {v.reviewers.filter((r) => r.role === 'JURY').map((r) => `${r.reviewer.firstName} ${r.reviewer.lastName}`).join(', ')}
+                  Jury:{' '}
+                  {v.reviewers
+                    .filter((r) => r.role === 'JURY')
+                    .map((r) => `${r.reviewer.firstName} ${r.reviewer.lastName}`)
+                    .join(', ')}
                 </p>
               </>
             ) : (
@@ -124,7 +127,8 @@ function TeamDetail({ v }: { v: TeamDetailView }) {
                 <div key={i} role="alert" className="flex gap-2.5 rounded-ctl border border-amber-line bg-amber-bg p-3 text-[14px] leading-5">
                   <Icon name="warn" size={18} className="flex-none text-amber" />
                   <span>
-                    <strong>Conflict:</strong> {c.reviewer.name} is also on Team {other.name}'s jury at {fmtTime(other.defense!.start)} in {other.defense!.room}.{' '}
+                    <strong>Conflict:</strong> {c.reviewer.name} is also on Team {other.name}'s jury at {fmtTime(other.defense!.start)} in {other.defense!.room}
+                    .{' '}
                     <Link to="/schedule" className="font-semibold">
                       Fix in Schedule
                     </Link>
@@ -148,13 +152,7 @@ function TeamDetail({ v }: { v: TeamDetailView }) {
                   : `Needs ${missing.map((a) => `the ${a.assessment.name} (${a.submitted} of ${a.expected} submitted)`).join(' and ')}.`}
               </p>
             </div>
-            {v.final !== null ? (
-              <ScoreChip score={v.final} variant="band" />
-            ) : (
-              <StatusChip kind="waiting">
-                {v.finalCount} of 5 assessments final
-              </StatusChip>
-            )}
+            {v.final !== null ? <ScoreChip score={v.final} variant="band" /> : <StatusChip kind="waiting">{v.finalCount} of 5 assessments final</StatusChip>}
           </Card>
           <Accordion.Root type="multiple" value={open} onValueChange={setOpen} className="flex flex-col gap-3">
             {v.assessments.map((a, i) => (
@@ -173,7 +171,13 @@ function AssessmentRow({ a, i, teamName }: { a: Row; i: number; teamName: string
   const meta = [
     a.assessment.role === 'JURY' ? 'Jury' : 'Advisor',
     `${a.submitted} of ${a.expected} submitted`,
-    a.release ? `released to students ${fmtShort(a.release.at)}` : a.grade !== null ? 'final, not released yet' : a.overdue ? `overdue since ${fmtShort(a.assessment.due)}` : `due ${fmtShort(a.assessment.due)}`,
+    a.release
+      ? `released to students ${fmtShort(a.release.at)}`
+      : a.grade !== null
+        ? 'final, not released yet'
+        : a.overdue
+          ? `overdue since ${fmtShort(a.assessment.due)}`
+          : `due ${fmtShort(a.assessment.due)}`,
     countsTowardFinal(a.assessment.weight) ? '' : 'not counted in the final grade',
   ]
     .filter(Boolean)
@@ -197,7 +201,10 @@ function AssessmentRow({ a, i, teamName }: { a: Row; i: number; teamName: string
     : a.grade !== null
       ? 'Release it for all final teams from the Overview.'
       : a.reviewers.some((r) => r.state !== 'SUBMITTED')
-        ? `The team grade is computed when ${a.reviewers.filter((r) => r.state !== 'SUBMITTED').map((r) => r.reviewer.name.split(' ')[0]).join(' and ')} submit${a.reviewers.filter((r) => r.state !== 'SUBMITTED').length === 1 ? 's' : ''}.`
+        ? `The team grade is computed when ${a.reviewers
+            .filter((r) => r.state !== 'SUBMITTED')
+            .map((r) => r.reviewer.name.split(' ')[0])
+            .join(' and ')} submit${a.reviewers.filter((r) => r.state !== 'SUBMITTED').length === 1 ? 's' : ''}.`
         : ''
   const pending = a.reviewers.filter((r) => r.state !== 'SUBMITTED')
 
@@ -226,7 +233,9 @@ function AssessmentRow({ a, i, teamName }: { a: Row; i: number; teamName: string
             {a.reviewers.map((r) => (
               <StatusChip key={r.reviewer.id} kind={r.state === 'DRAFT' ? 'draft' : 'plain'} icon={r.state === 'DRAFT' ? 'pencil' : null}>
                 {r.reviewer.name}{' '}
-                <span className="mono font-semibold">{r.state === 'SUBMITTED' ? (r.score !== null ? formatScore(r.score) : 'submitted') : r.state === 'DRAFT' ? 'draft' : '—'}</span>
+                <span className="mono font-semibold">
+                  {r.state === 'SUBMITTED' ? (r.score !== null ? formatScore(r.score) : 'submitted') : r.state === 'DRAFT' ? 'draft' : '—'}
+                </span>
                 {r.submittedLate && <span className="font-medium"> · late</span>}
               </StatusChip>
             ))}
@@ -343,7 +352,10 @@ function Spread({ a }: { a: Row }) {
         {subs.map((r) => (
           <span
             key={r.reviewer.id}
-            className={cn('absolute top-3 -ml-2.5 flex size-5 items-center justify-center rounded-full border-2 border-surface text-[9px] font-semibold', FILL[bandOf(r.score!)])}
+            className={cn(
+              'absolute top-3 -ml-2.5 flex size-5 items-center justify-center rounded-full border-2 border-surface text-[9px] font-semibold',
+              FILL[bandOf(r.score!)],
+            )}
             style={{ left: `${r.score}%` }}
           >
             {r.reviewer.initials}
@@ -364,7 +376,14 @@ function Spread({ a }: { a: Row }) {
   )
 }
 
-const HISTORY_ICON: Record<ActivityKind, IconName> = { submit: 'lock', edit: 'pencil', schedule: 'calendar', final: 'check', release: 'eye', assignment: 'people' }
+const HISTORY_ICON: Record<ActivityKind, IconName> = {
+  submit: 'lock',
+  edit: 'pencil',
+  schedule: 'calendar',
+  final: 'check',
+  release: 'eye',
+  assignment: 'people',
+}
 const HISTORY_FIRST = 6
 
 /** The team's history (contract `GET /api/activity?teamId=`): drafts, submissions, finals, releases, schedule and reviewer changes. */
@@ -386,7 +405,15 @@ function TeamHistory({ teamId, teamName }: { teamId: string; teamName: string })
         </div>
       )}
       {q.isError && (
-        <ErrorState compact title="We couldn't load the history." actions={<Button size="sm" variant="ghost" onClick={() => void q.refetch()}>Try again</Button>}>
+        <ErrorState
+          compact
+          title="We couldn't load the history."
+          actions={
+            <Button size="sm" variant="ghost" onClick={() => void q.refetch()}>
+              Try again
+            </Button>
+          }
+        >
           The rest of the page is up to date.
         </ErrorState>
       )}
@@ -616,7 +643,8 @@ export function ReviewersCard({ v }: { v: Pick<TeamDetailView, 'team' | 'reviewe
                         setRemoveErr('')
                         toast.success(`${r.reviewer.firstName} ${r.reviewer.lastName} removed from the team.`)
                       },
-                      (x: unknown) => setRemoveErr(`${r.reviewer.firstName} ${r.reviewer.lastName} stays on the team. ${x instanceof Error ? x.message : ''}`.trim()),
+                      (x: unknown) =>
+                        setRemoveErr(`${r.reviewer.firstName} ${r.reviewer.lastName} stays on the team. ${x instanceof Error ? x.message : ''}`.trim()),
                     )
                   }
                   className="flex size-11 flex-none cursor-pointer items-center justify-center rounded-ctl border-0 bg-transparent text-muted hover:bg-raised hover:text-ink"

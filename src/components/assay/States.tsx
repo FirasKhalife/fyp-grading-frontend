@@ -49,14 +49,7 @@ export function ErrorState({
   className?: string
 }) {
   return (
-    <div
-      role="alert"
-      className={cn(
-        'flex items-start gap-3.5 rounded-card border border-amber-line bg-amber-bg',
-        compact ? 'p-4' : 'p-6',
-        className,
-      )}
-    >
+    <div role="alert" className={cn('flex items-start gap-3.5 rounded-card border border-amber-line bg-amber-bg', compact ? 'p-4' : 'p-6', className)}>
       <Icon name="warn" size={compact ? 20 : 24} className="flex-none text-amber" />
       <div className="flex min-w-0 flex-col gap-2">
         <p className={cn('m-0 font-semibold', compact ? 'text-[15px]' : 'text-[17px]')}>{title}</p>
@@ -68,7 +61,17 @@ export function ErrorState({
 }
 
 /** Amber inline notice (warnings, conflicts). */
-export function Notice({ children, tone = 'amber', className, role }: { children: ReactNode; tone?: 'amber' | 'green' | 'blue'; className?: string; role?: 'alert' | 'status' }) {
+export function Notice({
+  children,
+  tone = 'amber',
+  className,
+  role,
+}: {
+  children: ReactNode
+  tone?: 'amber' | 'green' | 'blue'
+  className?: string
+  role?: 'alert' | 'status'
+}) {
   return (
     <div
       role={role}
