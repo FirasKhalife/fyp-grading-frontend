@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "gen:api": "openapi-typescript ../contract/openapi.yaml -o src/api/schema.d.ts"
+    "gen:api": "openapi-typescript ../fyp-grading-docker-compose/contract/openapi.yaml -o src/api/schema.d.ts"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",

@@ -1,5 +1,5 @@
 /**
- * Domain model used by the screens. It mirrors PRODUCT-BRIEF.md section 2. When the OpenAPI
+ * Domain model used by the screens. It mirrors fyp-grading-docker-compose/docs/project/PRODUCT-BRIEF.md section 2. When the OpenAPI
  * contract lands, the repository maps the generated DTOs onto these types, so screens don't change.
  */
 

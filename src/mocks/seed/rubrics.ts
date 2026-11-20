@@ -1,5 +1,5 @@
 // Generated from the fyp-grading-rubric-service seed SQL (criteria, weights, and the proposal,
-// progress and advisor level descriptions) and PRODUCT-BRIEF.md Appendix A (final report and
+// progress and advisor level descriptions) and fyp-grading-docker-compose/docs/project/PRODUCT-BRIEF.md Appendix A (final report and
 // final presentation level descriptions). The seed's weights win over the design's placeholders.
 import type { AssessmentKey } from '@/domain/types'
 

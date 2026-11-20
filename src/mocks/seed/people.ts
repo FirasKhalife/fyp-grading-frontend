@@ -1,7 +1,7 @@
 import type { Reviewer, Student, Team } from '@/domain/types'
 import { isoAt } from '@/lib/demo-clock'
 
-/** Demo people and teams from PRODUCT-BRIEF.md section 7 and the design handoff. */
+/** Demo people and teams from fyp-grading-docker-compose/docs/project/PRODUCT-BRIEF.md section 7 and the design handoff. */
 
 export const REVIEWERS: Reviewer[] = [
   { id: 'r-rania', firstName: 'Rania', lastName: 'Haddad', email: 'rania.haddad@usj.edu.lb', isAdmin: true },

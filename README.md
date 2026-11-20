@@ -26,7 +26,7 @@ only origin the local Keycloak client accepts. Unit tests always use the mocks, 
 | `ASSAY_BASE_URL=http://localhost:8080 npx playwright test -c playwright.real.config.ts` | The same, against a deployed stack: the built image behind the production compose's edge, which serves the app and proxies `/api` and `/realms/assay` on one origin. No dev server is started |
 | `npm run lint` | ESLint |
 | `npm run format` / `npm run format:check` | Prettier: format everything, or check it in CI (Markdown and `.github/` are left as written) |
-| `npm run gen:api` | Regenerate `src/api/schema.d.ts` from `../contract/openapi.yaml` |
+| `npm run gen:api` | Regenerate `src/api/schema.d.ts` from the [API contract](https://github.com/FirasKhalife/fyp-grading-docker-compose/blob/master/contract/openapi.yaml), read from a `fyp-grading-docker-compose` clone next to this one (`../fyp-grading-docker-compose/contract/openapi.yaml`) |
 
 ## How it's built
 
