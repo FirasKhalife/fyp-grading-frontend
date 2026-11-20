@@ -21,6 +21,8 @@ import { Card, Skeleton } from '@/components/ui/card'
 import { NotFoundPage, NoPermissionPage } from '../utility/UtilityPages'
 import { LevelPicker } from './LevelPicker'
 import { useDraft } from './useDraft'
+import { countsTowardFinal } from '@/lib/weight'
+import { WeightPhrase } from '@/components/assay/WeightPhrase'
 
 const WORDS = ['no', 'one', 'two', 'three', 'four', 'five']
 /** The contract's limits (EvaluationDraft): a comment per criterion, and the overall comment. */
@@ -178,7 +180,7 @@ function GradingForm({ view }: { view: GradingView }) {
               {a.role === 'JURY' ? 'Jury' : 'Advisor'} · {criteria.length} criteria
             </StatusChip>
             <StatusChip kind="plain">
-              <span className="mono font-semibold">{a.weight}%</span> of final grade
+              <WeightPhrase weight={a.weight} />
             </StatusChip>
             {others.length > 0 && (
               <StatusChip kind="plain" className="md:hidden">
@@ -430,9 +432,8 @@ function GradingForm({ view }: { view: GradingView }) {
               </ul>
               <p className="m-0 border-t border-line pt-3 text-[13px] leading-[19px] text-muted">
                 {peers.length > 1
-                  ? `The team's ${a.name.toLowerCase()} grade is the plain average of the ${WORDS[peers.length] ?? peers.length} ${roleWord} scores and counts for ${a.weight}% of Team ${team.name}'s final grade. Other reviewers' scores stay hidden while you grade.`
-                  : `Your score is the team's ${a.name.toLowerCase()} grade and counts for ${a.weight}% of Team ${team.name}'s final grade.`}
-                {a.weight === 0 && ' It counts 0% but must be submitted before the final grade can be computed.'}
+                  ? `The team's ${a.name.toLowerCase()} grade is the plain average of the ${WORDS[peers.length] ?? peers.length} ${roleWord} scores. ${countsSentence(a.weight, team.name)} Other reviewers' scores stay hidden while you grade.`
+                  : `Your score is the team's ${a.name.toLowerCase()} grade. ${countsSentence(a.weight, team.name)}`}
               </p>
             </Card>
           </aside>
@@ -578,4 +579,11 @@ function GradingSkeleton() {
       </div>
     </Main>
   )
+}
+
+/** What the assessment means for the team's final grade, in one sentence. */
+function countsSentence(weight: number, teamName: string): string {
+  return countsTowardFinal(weight)
+    ? `It counts for ${weight}% of Team ${teamName}'s final grade.`
+    : `It's required but not counted: Team ${teamName}'s final grade can be computed only once it's submitted.`
 }

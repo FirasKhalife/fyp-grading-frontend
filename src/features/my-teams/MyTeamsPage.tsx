@@ -13,6 +13,7 @@ import { EmptyState, ErrorState } from '@/components/assay/States'
 import { StatusChip } from '@/components/assay/StatusChip'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
+import { weightLabel } from '@/lib/weight'
 
 type Filter = 'all' | 'todo' | 'done'
 
@@ -236,7 +237,7 @@ function EvalRow({ teamId, teamName, row, defense }: { teamId: string; teamName:
     <li className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 border-t border-line py-4 first:border-t-0 lg:grid-cols-[minmax(0,1.6fr)_190px_210px_120px_180px] lg:gap-4 lg:py-3.5">
       <span className="col-span-2 flex min-w-0 flex-col gap-0.5 lg:col-span-1">
         <span className="font-semibold">{a.name}</span>
-        <span className="mono text-[12px] text-muted">{a.weight}% of final grade</span>
+        <span className="mono text-[12px] text-muted">{weightLabel(a.weight)}</span>
       </span>
       <span>
         {row.state === 'SUBMITTED' && (row.submittedLate ? <StatusChip kind="overdue" icon="lock">Submitted late</StatusChip> : <StatusChip kind="submitted" />)}

@@ -18,6 +18,7 @@ import { ErrorState } from '@/components/assay/States'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
 import { NotFoundPage } from '../utility/UtilityPages'
+import { weightLabel } from '@/lib/weight'
 
 interface Row {
   k: string
@@ -150,7 +151,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
       <div className="flex flex-col gap-1.5">
         <PageTitle>Edit rubric · {a.name}</PageTitle>
         <p className="m-0 text-ink2">
-          {a.role === 'JURY' ? 'Jury' : 'Advisor'} assessment · {a.weight}% of the final grade. Reorder with the arrow buttons; weights must total 100% to
+          {a.role === 'JURY' ? 'Jury' : 'Advisor'} assessment · {weightLabel(a.weight)}. Reorder with the arrow buttons; weights must total 100% to
           save.
         </p>
         <p className="m-0 text-[13px] text-muted">

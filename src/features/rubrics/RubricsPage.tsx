@@ -14,6 +14,8 @@ import { ErrorState } from '@/components/assay/States'
 import { StatusChip } from '@/components/assay/StatusChip'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
+import { weightLabel } from '@/lib/weight'
+import { WeightPhrase } from '@/components/assay/WeightPhrase'
 
 const HEAD_LEVELS: Level[] = [4, 3, 2, 1, 0]
 
@@ -67,7 +69,7 @@ export function RubricsPage() {
                 value={a.key}
                 className="inline-flex min-h-12 cursor-pointer items-center gap-2 whitespace-nowrap border-0 bg-transparent px-4 text-[15px] font-medium text-ink2 data-[state=active]:font-semibold data-[state=active]:text-ink data-[state=active]:shadow-[inset_0_-3px_0_var(--pri)]"
               >
-                {a.name} <span className="mono text-[13px] font-medium text-muted">{a.weight}%</span>
+                {a.name} <span className="mono text-[13px] font-medium text-muted">{weightLabel(a.weight, 'short')}</span>
               </Tabs.Trigger>
             ))}
           </Tabs.List>
@@ -80,14 +82,13 @@ export function RubricsPage() {
                 <div className="flex flex-wrap gap-2">
                   <StatusChip kind="plain">Graded by {a.role === 'JURY' ? 'jury' : 'advisor'}</StatusChip>
                   <StatusChip kind="plain">
-                    <span className="mono font-semibold">{a.weight}%</span> of the final grade
+                    <WeightPhrase weight={a.weight} />
                   </StatusChip>
                   <StatusChip kind="plain">
                     {r.criteria.length} criteria · weights total <span className="mono font-semibold">{total}%</span>
                   </StatusChip>
                   <StatusChip kind="plain" icon="calendar">
                     {a.key === 'FINAL_PRESENTATION' ? `Defenses · due ${fmtDayYear(a.due)}` : `Due ${fmtShort(a.due)}`}
-                    {a.weight === 0 && ' · required'}
                   </StatusChip>
                   {edited && (
                     <StatusChip kind="plain" icon="pencil">

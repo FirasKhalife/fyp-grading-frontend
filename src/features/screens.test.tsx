@@ -40,6 +40,13 @@ describe('P3 My teams', () => {
     }
   })
 
+  it('shows the progress report as required, not as 0% of the final grade', async () => {
+    renderApp('/my-teams', 'jane')
+    await screen.findByText(/evaluations submitted/)
+    expect(screen.getAllByText('Required · not counted in the final grade').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/(^|[^0-9])0% of/)).not.toBeInTheDocument()
+  })
+
   it('has no axe violations', async () => {
     const { container } = renderApp('/my-teams', 'jane')
     await screen.findByText(/evaluations submitted/)
@@ -57,6 +64,14 @@ describe('P5 Coordinator overview', () => {
     expect(kpis).toHaveTextContent('62 / 74')
     expect(kpis).toHaveTextContent('90.1')
     expect(screen.getByRole('link', { name: /^74.2 Released · spread 21.3. Team Beta, Proposal presentation, Accomplished band$/ })).toBeInTheDocument()
+  })
+
+  it('labels the progress column "Required" instead of 0%', async () => {
+    renderApp('/overview', 'rania')
+    const grid = await screen.findByRole('table', { name: GRID }, { timeout: 5000 })
+    const progress = within(grid).getByRole('columnheader', { name: /^Progress/ })
+    expect(progress).toHaveTextContent(/^Progress Required/)
+    expect(progress).not.toHaveTextContent('0%')
   })
 
   it('moves focus through the grid with arrow keys (one tab stop)', async () => {

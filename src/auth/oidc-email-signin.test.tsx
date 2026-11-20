@@ -24,8 +24,11 @@ describe('Sign in with email on a new browser', () => {
   it('creates the copy before asking who the user is, then lands on their home', async () => {
     renderApp('/auth/callback')
     store.purgeCopy() // a browser that never had a copy
+    localStorage.setItem('assay-persona', 'jane') // a persona picked earlier in this browser
     expect(await screen.findByRole('heading', { level: 1, name: 'My teams' }, { timeout: 5000 })).toBeInTheDocument()
     expect(store.hasCopy()).toBe(true)
     expect(screen.queryByText("Sign-in didn't complete.")).not.toBeInTheDocument()
+    // An email user is not a persona: a new tab must not sign Jane in.
+    expect(localStorage.getItem('assay-persona')).toBeNull()
   })
 })

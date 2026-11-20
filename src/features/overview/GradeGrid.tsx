@@ -8,6 +8,7 @@ import { formatScore } from '@/lib/scoring'
 import { Icon } from '@/components/assay/Icon'
 import { FILL, LevelBars } from '@/components/assay/LevelMark'
 import type { Assessment } from '@/domain/types'
+import { weightLabel } from '@/lib/weight'
 
 export interface CellModel {
   kind: 'grade' | 'wait' | 'overdue' | 'todo'
@@ -117,7 +118,7 @@ export function GradeGrid({ rows, cols, releaseCounts }: { rows: GridRow[]; cols
                 <th key={a.key} scope="col" className="px-1 pb-1 text-left align-bottom text-[13px] font-semibold text-ink2">
                   <span className="flex flex-col gap-0.5">
                     <span>
-                      {a.shortName} <span className="mono font-medium text-muted">{a.weight}%</span>
+                      {a.shortName} <span className="mono font-medium text-muted">{weightLabel(a.weight, 'short')}</span>
                     </span>
                     <span className={cn('inline-flex items-center gap-1 text-[12px] font-medium', n < rows.length && 'text-muted')}>
                       <Icon name="eye" size={12} />
