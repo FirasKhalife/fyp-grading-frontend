@@ -8,6 +8,11 @@ import * as store from '@/mocks/store'
 import { routes } from '@/router'
 import { expect } from 'vitest'
 
+// Load every screen (and the overview's charts) with this helper, before any test runs. The app loads them
+// lazily on first visit; in a test that cost (a second or more per file when files run in parallel) landed
+// inside the first findBy and pushed it toward its time limit.
+import.meta.glob(['/src/features/**/*Page.tsx', '/src/features/overview/Insights.tsx'], { eager: true })
+
 /** Renders the real routes at `path`, signed in as a persona, on a fresh demo copy served by MSW. */
 export function renderApp(path: string, persona?: PersonaId) {
   store.createCopy()
