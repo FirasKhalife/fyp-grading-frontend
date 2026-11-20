@@ -19,7 +19,8 @@ export const buttonVariants = cva(
       },
       size: {
         md: 'min-h-11 px-4 text-[15px]',
-        sm: 'min-h-9 px-3 text-[14px]',
+        // Smaller text and padding, never a smaller target: every size is at least 44 px (WCAG 2.5.8, the Assay rule).
+        sm: 'min-h-11 px-3 text-[14px]',
         lg: 'min-h-12 px-5 text-[16px]',
         icon: 'size-11 p-0',
       },
