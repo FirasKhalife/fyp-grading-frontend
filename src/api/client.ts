@@ -116,7 +116,8 @@ async function requestOnce<T>(method: string, path: string, body: unknown, opts:
     const stale = headers['X-Demo-Session'] !== demoSessionId()
     if (res.status === 401) onUnauthorized?.()
     // The session endpoints handle their own 404; anywhere else it means the copy vanished mid-visit.
-    else if (!stale && ((err.code === 'demo-session-not-found' && !path.startsWith('/api/demo/session')) || err.code === 'demo-session-required')) onSessionProblem?.(err)
+    else if (!stale && ((err.code === 'demo-session-not-found' && !path.startsWith('/api/demo/session')) || err.code === 'demo-session-required'))
+      onSessionProblem?.(err)
     throw err
   }
   if (opts.raw) return (await res.text()) as T
@@ -126,10 +127,10 @@ async function requestOnce<T>(method: string, path: string, body: unknown, opts:
 }
 
 export const api = {
-  get: <T,>(path: string) => request<T>('GET', path),
+  get: <T>(path: string) => request<T>('GET', path),
   text: (path: string) => request<string>('GET', path, undefined, { raw: true }),
-  post: <T,>(path: string, body?: unknown) => request<T>('POST', path, body),
-  put: <T,>(path: string, body?: unknown) => request<T>('PUT', path, body),
-  patch: <T,>(path: string, body?: unknown) => request<T>('PATCH', path, body),
-  del: <T,>(path: string) => request<T>('DELETE', path),
+  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
+  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
+  patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
+  del: <T>(path: string) => request<T>('DELETE', path),
 }

@@ -47,7 +47,10 @@ test.describe('every persona reaches a meaningful screen in one click', () => {
     await expect(page.getByText(/This evaluation is locked/)).toBeVisible()
 
     await page.getByRole('button', { name: 'Switch role' }).click()
-    await page.getByRole('dialog', { name: 'Switch role' }).getByRole('button', { name: /Rania Haddad/ }).click()
+    await page
+      .getByRole('dialog', { name: 'Switch role' })
+      .getByRole('button', { name: /Rania Haddad/ })
+      .click()
     await expect(page.getByRole('link', { name: /^\d+\.\d Final\. Team Beta, Final report/ })).toBeVisible()
     const rel = page.getByRole('region', { name: 'Ready to release' })
     await rel.getByRole('button', { name: 'Release to Beta, Epsilon and Zeta' }).click()

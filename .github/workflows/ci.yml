@@ -28,6 +28,8 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Formatting
+        run: npm run format:check
       - name: Type-check
         run: npm run typecheck
       - name: Unit and component tests

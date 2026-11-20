@@ -61,7 +61,11 @@ export function RubricsPage() {
         </ErrorState>
       )}
       {q.isSuccess && (
-        <Tabs.Root value={current} onValueChange={(v) => navigate(`/rubrics/${assessmentSlug(v as typeof current)}`, { replace: true })} className="flex flex-col gap-4">
+        <Tabs.Root
+          value={current}
+          onValueChange={(v) => navigate(`/rubrics/${assessmentSlug(v as typeof current)}`, { replace: true })}
+          className="flex flex-col gap-4"
+        >
           <Tabs.List aria-label="Assessments" className="flex gap-1 overflow-x-auto border-b border-line">
             {q.data.assessments.map((a) => (
               <Tabs.Trigger
@@ -107,7 +111,9 @@ export function RubricsPage() {
                         </th>
                         {HEAD_LEVELS.map((l) => (
                           <th key={l} scope="col" className={cn('sticky top-0 z-[1] bg-surface p-3.5 text-left', l === 0 ? 'w-[8%]' : 'w-[17%]')}>
-                            <span className={cn('inline-flex h-[30px] items-center gap-2 whitespace-nowrap rounded-chip px-2.5 text-[13px] font-semibold', FILL[l])}>
+                            <span
+                              className={cn('inline-flex h-[30px] items-center gap-2 whitespace-nowrap rounded-chip px-2.5 text-[13px] font-semibold', FILL[l])}
+                            >
                               <LevelBars level={l} />
                               {l}
                               {l > 0 && ` · ${LEVEL_NAMES[l]}`}

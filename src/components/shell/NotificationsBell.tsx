@@ -41,7 +41,10 @@ export function NotificationsBell() {
         >
           <Icon name="bell" size={18} />
           {unread > 0 && (
-            <span aria-hidden="true" className="absolute right-[3px] top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-pri px-1 text-[11px] font-semibold leading-none text-on-pri">
+            <span
+              aria-hidden="true"
+              className="absolute right-[3px] top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-pri px-1 text-[11px] font-semibold leading-none text-on-pri"
+            >
               {unread}
             </span>
           )}
@@ -95,7 +98,10 @@ export function NotificationsBell() {
               <div className="border-t border-line px-4 pb-1.5 pt-2.5 text-[12px] font-semibold text-muted">{g.n}</div>
               <ul className="m-0 list-none p-0">
                 {g.items.map((it) => (
-                  <li key={it.id} className={cn('relative grid grid-cols-[32px_1fr_auto] items-start gap-3 border-t border-line px-4 py-3.5', !it.read && 'bg-pri-soft')}>
+                  <li
+                    key={it.id}
+                    className={cn('relative grid grid-cols-[32px_1fr_auto] items-start gap-3 border-t border-line px-4 py-3.5', !it.read && 'bg-pri-soft')}
+                  >
                     {!it.read && <span aria-hidden="true" className="absolute left-1.5 top-7 size-2 rounded-full bg-pri" />}
                     <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-[8px] bg-raised text-ink2">
                       <Icon name={KIND_ICON[it.kind]} />

@@ -28,13 +28,18 @@ export async function credentials(page: Page): Promise<{ session: string; token:
   return page.evaluate(() => {
     const session = localStorage.getItem('assay-demo-session') ?? ''
     const key = Object.keys(sessionStorage).find((k) => k.startsWith('oidc.user:'))
-    const token = key ? (JSON.parse(sessionStorage.getItem(key) ?? '{}') as { access_token?: string }).access_token ?? '' : ''
+    const token = key ? ((JSON.parse(sessionStorage.getItem(key) ?? '{}') as { access_token?: string }).access_token ?? '') : ''
     return { session, token }
   })
 }
 
 /** A gateway call as the signed-in visitor (same copy, same token). */
-export async function api<T = unknown>(page: Page, method: string, path: string, body?: unknown): Promise<{ status: number; body: T; headers: Record<string, string> }> {
+export async function api<T = unknown>(
+  page: Page,
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<{ status: number; body: T; headers: Record<string, string> }> {
   const { session, token } = await credentials(page)
   const res = await page.request.fetch(`${GATEWAY}${path}`, {
     method,
@@ -85,7 +90,8 @@ export function watch(page: Page, allow: (r: Response) => boolean = () => false)
   page.on('requestfailed', (r) => {
     const u = r.url()
     // An SSE stream or a fetch torn down by a navigation is not a failure.
-    if ((u.startsWith(GATEWAY) || u.startsWith(KEYCLOAK)) && !u.includes('/stream') && r.failure()?.errorText !== 'net::ERR_ABORTED') problems.push(`failed ${r.method()} ${u.replace(GATEWAY, '')} ${r.failure()?.errorText ?? ''}`)
+    if ((u.startsWith(GATEWAY) || u.startsWith(KEYCLOAK)) && !u.includes('/stream') && r.failure()?.errorText !== 'net::ERR_ABORTED')
+      problems.push(`failed ${r.method()} ${u.replace(GATEWAY, '')} ${r.failure()?.errorText ?? ''}`)
   })
   page.on('pageerror', (e) => problems.push(`page error: ${e.message}`))
   page.on('console', (m) => {

@@ -25,6 +25,13 @@ function invalidateAll(qc: QueryClient) {
   return qc.invalidateQueries({ queryKey: qk.all })
 }
 
+/**
+ * The live stream's fetch: fresh auth headers on every (re)connect. Given to fetchEventSource, which
+ * would otherwise reuse the first token forever, and would keep a token that has since been refreshed.
+ */
+export const streamFetch: typeof fetch = async (input, init) =>
+  fetch(input, { ...init, headers: { ...(init?.headers as Record<string, string>), ...(await authHeaders()) } })
+
 /** Stops the stream's retries (the library rethrows errors thrown from onerror). */
 class StreamStopped extends Error {}
 
@@ -43,8 +50,7 @@ export function useLiveUpdates() {
     void fetchEventSource(apiUrl('/api/notifications/stream'), {
       signal: ctrl.signal,
       openWhenHidden: true,
-      // Fresh headers per attempt: the library would otherwise reuse the first token forever.
-      fetch: async (input, init) => fetch(input, { ...init, headers: { ...(init?.headers as Record<string, string>), ...(await authHeaders()) } }),
+      fetch: streamFetch,
       async onopen(res) {
         if (res.status === 401 || res.status === 403) {
           if (res.status === 401) notifyUnauthorized()
@@ -58,7 +64,8 @@ export function useLiveUpdates() {
         if (ev.event === 'notification' || ev.event === 'unread-count') void qc.invalidateQueries({ queryKey: qk.notifications(viewer.userId) })
         if (ev.event === 'notification') {
           // A grade became final, results were released, a slot moved: the lists that show those.
-          for (const key of [qk.myTeams(viewer.userId), qk.student(viewer.userId), qk.overview, qk.schedule(viewer.userId)]) void qc.invalidateQueries({ queryKey: key })
+          for (const key of [qk.myTeams(viewer.userId), qk.student(viewer.userId), qk.overview, qk.schedule(viewer.userId)])
+            void qc.invalidateQueries({ queryKey: key })
           void qc.invalidateQueries({ queryKey: ['assay', 'team'] })
         }
         if (ev.event === 'activity') {

@@ -43,7 +43,13 @@ export async function expectAccessible(page: Page, label: string) {
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
   const res = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
   const msg = res.violations
-    .map((v) => `${v.id}: ${v.help}\n  ${v.nodes.slice(0, 4).map((n) => `${n.target.join(' ')} ${n.failureSummary ?? ''}`.slice(0, 300)).join('\n  ')}`)
+    .map(
+      (v) =>
+        `${v.id}: ${v.help}\n  ${v.nodes
+          .slice(0, 4)
+          .map((n) => `${n.target.join(' ')} ${n.failureSummary ?? ''}`.slice(0, 300))
+          .join('\n  ')}`,
+    )
     .join('\n')
   expect(msg, label).toBe('')
 }

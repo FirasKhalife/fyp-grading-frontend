@@ -76,7 +76,10 @@ export function AppHeader() {
               <button
                 type="button"
                 aria-label={`${ini}, account menu for ${persona.firstName} ${persona.lastName}`}
-                className={cn('inline-flex size-11 flex-none cursor-pointer items-center justify-center rounded-full border-0 font-semibold', AVATAR_CLASS[persona.id])}
+                className={cn(
+                  'inline-flex size-11 flex-none cursor-pointer items-center justify-center rounded-full border-0 font-semibold',
+                  AVATAR_CLASS[persona.id],
+                )}
               >
                 {ini}
               </button>

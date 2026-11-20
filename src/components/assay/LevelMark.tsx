@@ -18,11 +18,7 @@ export function LevelBars({ level, size = 'sm', className }: { level: Level; siz
   return (
     <span aria-hidden="true" className={cn('inline-flex flex-none items-end', className)} style={{ gap: s.gap, height: s.box }}>
       {s.h.map((h, i) => (
-        <i
-          key={i}
-          className={cn('block rounded-[1px]', i < level ? 'bg-current' : 'border-[1.5px] border-current')}
-          style={{ width: s.w, height: h }}
-        />
+        <i key={i} className={cn('block rounded-[1px]', i < level ? 'bg-current' : 'border-[1.5px] border-current')} style={{ width: s.w, height: h }} />
       ))}
     </span>
   )
@@ -44,11 +40,7 @@ interface LevelMarkProps {
 export function LevelMark({ level, showName = false, prefix, className, label }: LevelMarkProps) {
   return (
     <span
-      className={cn(
-        'inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-chip px-2 text-[13px] font-semibold',
-        FILL[level],
-        className,
-      )}
+      className={cn('inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-chip px-2 text-[13px] font-semibold', FILL[level], className)}
       role={label ? 'img' : undefined}
       aria-label={label}
     >

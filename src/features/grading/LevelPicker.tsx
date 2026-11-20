@@ -74,7 +74,9 @@ export function LevelPicker({
               </span>
             </span>
             <span className="text-[14px] font-semibold leading-[19px]">{LEVEL_NAMES[l]}</span>
-            <span className="col-start-2 text-[14px] leading-5 text-muted group-data-[state=checked]:text-inherit md:text-[13px] md:leading-[19px]">{desc}</span>
+            <span className="col-start-2 text-[14px] leading-5 text-muted group-data-[state=checked]:text-inherit md:text-[13px] md:leading-[19px]">
+              {desc}
+            </span>
           </RadioGroup.Item>
         )
       })}

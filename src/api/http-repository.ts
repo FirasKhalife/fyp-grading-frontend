@@ -131,7 +131,9 @@ function compositionOf(c: S<'Composition'>): CompositionCheck {
     total: c.reviewerCount,
     jury: c.juryCount,
     advisors: c.advisorCount,
-    text: c.valid ? `${head}. Meets the team rules.` : `${head} · ${c.problems.map((p) => p.message.replace(/\.$/, '').replace(/^./, (x) => x.toLowerCase())).join(', ')}`,
+    text: c.valid
+      ? `${head}. Meets the team rules.`
+      : `${head} · ${c.problems.map((p) => p.message.replace(/\.$/, '').replace(/^./, (x) => x.toLowerCase())).join(', ')}`,
   }
 }
 
@@ -163,7 +165,11 @@ export function hrefOf(link: S<'Link'>, v: Viewer): string {
     case 'EVALUATION':
       return link.teamId && link.assessment ? `/grade/${link.teamId}/${assessmentSlug(link.assessment)}` : '/my-teams'
     case 'TEAM':
-      return v.kind === 'admin' && link.teamId ? `/teams/${link.teamId}${link.assessment ? `#${link.assessment.toLowerCase()}` : ''}` : v.kind === 'student' ? '/student' : '/my-teams'
+      return v.kind === 'admin' && link.teamId
+        ? `/teams/${link.teamId}${link.assessment ? `#${link.assessment.toLowerCase()}` : ''}`
+        : v.kind === 'student'
+          ? '/student'
+          : '/my-teams'
     case 'SCHEDULE':
       return '/schedule'
     case 'STUDENT_RESULTS':
@@ -273,14 +279,16 @@ export const httpRepository = {
   },
 
   async grading(teamId: string, a: AssessmentKey): Promise<GradingView> {
-    const [e, t] = await Promise.all([
-      api.get<S<'Evaluation'>>(`/api/my-evaluations/${teamId}/${a}`),
-      api.get<S<'Team'>>(`/api/teams/${teamId}`),
-    ])
+    const [e, t] = await Promise.all([api.get<S<'Evaluation'>>(`/api/my-evaluations/${teamId}/${a}`), api.get<S<'Team'>>(`/api/teams/${teamId}`)])
     const ta = t.assessments.find((x) => x.assessment === a)!
     const rubric: Rubric = { assessment: a, criteria: e.criteria.map(criterionOf) }
     const peers = ta.reviewers
-      .map((r) => ({ reviewer: ref(r.reviewer), you: r.reviewer.id === e.reviewer.id, state: evalState(r.status), at: r.submittedAt ? wall(r.submittedAt) : null }))
+      .map((r) => ({
+        reviewer: ref(r.reviewer),
+        you: r.reviewer.id === e.reviewer.id,
+        state: evalState(r.status),
+        at: r.submittedAt ? wall(r.submittedAt) : null,
+      }))
       .sort((x, y) => Number(x.you) - Number(y.you))
     return {
       team: teamOf(t, t.reviewers, t.defenseSlot),
@@ -342,7 +350,8 @@ export const httpRepository = {
       }
     })
     const overdueBy = new Map<string, string[]>()
-    for (const r of rows) for (const c of r.cells.filter((x) => x.overdue)) overdueBy.set(c.assessment.shortName, [...(overdueBy.get(c.assessment.shortName) ?? []), r.team.name])
+    for (const r of rows)
+      for (const c of r.cells.filter((x) => x.overdue)) overdueBy.set(c.assessment.shortName, [...(overdueBy.get(c.assessment.shortName) ?? []), r.team.name])
     const finals = rows.filter((r) => r.final !== null)
     const releases: ReleaseCandidate[] = o.assessments.map((a, i) => ({
       assessment: assessmentOf(a.code, a.dueAt, a.weight, a.reviewerRole),
@@ -474,7 +483,9 @@ export const httpRepository = {
     return {
       assessments: assessments.map((a) => assessmentOf(a.code, a.dueAt, a.weight, a.reviewerRole)),
       rubrics: rubrics.map((r) => ({ assessment: r.assessment, criteria: r.criteria.map(criterionOf) })),
-      edited: Object.fromEntries(rubrics.map((r) => [r.assessment, r.updatedBy ? { at: r.updatedAt ? wall(r.updatedAt) : null, by: r.updatedBy.displayName } : null])),
+      edited: Object.fromEntries(
+        rubrics.map((r) => [r.assessment, r.updatedBy ? { at: r.updatedAt ? wall(r.updatedAt) : null, by: r.updatedBy.displayName } : null]),
+      ),
       submittedCount,
     }
   },
@@ -499,7 +510,11 @@ export const httpRepository = {
     ])
     const teamsById = new Map<string, Team>()
     const slots = s.slots.map((x) => {
-      const team = teamOf(x.team, x.jury.map((j) => ({ reviewer: j, role: 'JURY' as const })), x)
+      const team = teamOf(
+        x.team,
+        x.jury.map((j) => ({ reviewer: j, role: 'JURY' as const })),
+        x,
+      )
       teamsById.set(team.id, team)
       const end = wall(x.endsAt)
       return { team, slot: slotOf(x)!, jury: x.jury.map(ref), conflict: x.conflicts.length > 0, done: parseLocal(end) < now() }
@@ -611,10 +626,7 @@ export const httpRepository = {
   },
 
   async teams(): Promise<TeamsListView> {
-    const [list, reviewers] = await Promise.all([
-      api.get<S<'TeamSummaryPage'>>('/api/teams?size=100'),
-      api.get<S<'ReviewerPage'>>('/api/reviewers?size=100'),
-    ])
+    const [list, reviewers] = await Promise.all([api.get<S<'TeamSummaryPage'>>('/api/teams?size=100'), api.get<S<'ReviewerPage'>>('/api/reviewers?size=100')])
     const details = await Promise.all(list.content.map((t) => api.get<S<'Team'>>(`/api/teams/${t.id}`)))
     return {
       teams: details.map((t) => ({
@@ -662,4 +674,3 @@ function draftBody(d: DraftState): S<'EvaluationDraft'> {
     overallComment: d.overall || null,
   }
 }
-

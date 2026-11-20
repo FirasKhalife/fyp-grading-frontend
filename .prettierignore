@@ -1,0 +1,12 @@
+dist
+node_modules
+coverage
+playwright-report
+test-results
+blob-report
+public/mockServiceWorker.js
+src/api/schema.d.ts
+package-lock.json
+# Hand-aligned tables and comments: kept as written.
+*.md
+.github

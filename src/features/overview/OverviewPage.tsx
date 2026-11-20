@@ -79,7 +79,16 @@ function Kpis({ k }: { k: OverviewView['kpis'] }) {
   const rel = k.releasable ? Math.round((k.released / k.releasable) * 100) : 0
   return (
     <section aria-label="Key figures" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
-      <Kpi label="Evaluations submitted" value={<>{k.submitted} <span className="text-[18px] text-muted">/ {k.expected}</span></>} meter={pct} foot={`${pct}% · ${k.expected - k.submitted} still to come`} />
+      <Kpi
+        label="Evaluations submitted"
+        value={
+          <>
+            {k.submitted} <span className="text-[18px] text-muted">/ {k.expected}</span>
+          </>
+        }
+        meter={pct}
+        foot={`${pct}% · ${k.expected - k.submitted} still to come`}
+      />
       <Kpi
         label="Overdue"
         tone={k.overdue.count ? 'amber' : undefined}
@@ -95,8 +104,25 @@ function Kpis({ k }: { k: OverviewView['kpis'] }) {
           )
         }
       />
-      <Kpi label="Final grades computed" value={<>{k.finals.count} <span className="text-[18px] text-muted">/ {k.teamCount}</span></>} foot={k.finals.names.join(', ') || 'None yet'} />
-      <Kpi label="Results released" value={<>{k.released} <span className="text-[18px] text-muted">/ {k.releasable}</span></>} meter={rel} foot={k.readyToRelease ? `${k.readyToRelease} final and ready to release` : 'team × assessment results'} />
+      <Kpi
+        label="Final grades computed"
+        value={
+          <>
+            {k.finals.count} <span className="text-[18px] text-muted">/ {k.teamCount}</span>
+          </>
+        }
+        foot={k.finals.names.join(', ') || 'None yet'}
+      />
+      <Kpi
+        label="Results released"
+        value={
+          <>
+            {k.released} <span className="text-[18px] text-muted">/ {k.releasable}</span>
+          </>
+        }
+        meter={rel}
+        foot={k.readyToRelease ? `${k.readyToRelease} final and ready to release` : 'team × assessment results'}
+      />
       <Kpi
         label="Average final grade"
         value={
@@ -485,4 +511,3 @@ function OverviewEmpty() {
     </div>
   )
 }
-

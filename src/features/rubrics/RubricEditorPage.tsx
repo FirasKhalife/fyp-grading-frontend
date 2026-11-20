@@ -110,9 +110,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
   async function onSave() {
     if (!ok) return
     try {
-      await save.mutateAsync(
-        rows.map((r): Criterion => ({ id: r.id, name: r.name.trim(), weight: Number(r.weight), descriptions: r.d })),
-      )
+      await save.mutateAsync(rows.map((r): Criterion => ({ id: r.id, name: r.name.trim(), weight: Number(r.weight), descriptions: r.d })))
       setDirty(false)
       setSaved(true)
       setFieldErrors({})
@@ -139,11 +137,11 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
       ? 'Every criterion needs a name.'
       : !whole
         ? 'Weights must be whole numbers, like 15 or 20.'
-      : ok
-        ? 'Weights add up to 100%. Ready to save.'
-        : diff > 0
-          ? `Add ${diff}% before saving.`
-          : `Remove ${-diff}% before saving.`
+        : ok
+          ? 'Weights add up to 100%. Ready to save.'
+          : diff > 0
+            ? `Add ${diff}% before saving.`
+            : `Remove ${-diff}% before saving.`
 
   return (
     <Main className="gap-5 pb-10">
@@ -151,8 +149,7 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
       <div className="flex flex-col gap-1.5">
         <PageTitle>Edit rubric · {a.name}</PageTitle>
         <p className="m-0 text-ink2">
-          {a.role === 'JURY' ? 'Jury' : 'Advisor'} assessment · {weightLabel(a.weight)}. Reorder with the arrow buttons; weights must total 100% to
-          save.
+          {a.role === 'JURY' ? 'Jury' : 'Advisor'} assessment · {weightLabel(a.weight)}. Reorder with the arrow buttons; weights must total 100% to save.
         </p>
         <p className="m-0 text-[13px] text-muted">
           {edited ? (
@@ -182,9 +179,22 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
           {rows.map((r, i) => {
             const isOpen = open === r.k
             return (
-              <li key={r.k} className={cn('grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3 px-4 py-4 md:grid-cols-[44px_minmax(0,1fr)_130px_auto] md:px-5', i > 0 && 'border-t border-line')}>
+              <li
+                key={r.k}
+                className={cn(
+                  'grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3 px-4 py-4 md:grid-cols-[44px_minmax(0,1fr)_130px_auto] md:px-5',
+                  i > 0 && 'border-t border-line',
+                )}
+              >
                 <div className="flex flex-col gap-1">
-                  <button type="button" id={`up-${r.k}`} className={iconBtn} aria-label={`Move criterion ${i + 1} up`} onClick={() => moveRow(i, -1)} disabled={i === 0}>
+                  <button
+                    type="button"
+                    id={`up-${r.k}`}
+                    className={iconBtn}
+                    aria-label={`Move criterion ${i + 1} up`}
+                    onClick={() => moveRow(i, -1)}
+                    disabled={i === 0}
+                  >
                     <Icon name="chevronUp" />
                   </button>
                   <span className="mono text-center text-[13px] font-semibold text-muted">{i + 1}</span>
@@ -255,7 +265,13 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
                   <div className="col-span-2 grid grid-cols-1 gap-2.5 md:col-start-2 md:col-end-[-1] md:grid-cols-4">
                     {([4, 3, 2, 1] as Level[]).map((l) => (
                       <div key={l} className="flex flex-col gap-1.5">
-                        <label htmlFor={`d-${r.k}-${l}`} className={cn('inline-flex h-7 items-center gap-2 self-start whitespace-nowrap rounded-chip px-2.5 text-[13px] font-semibold', FILL[l])}>
+                        <label
+                          htmlFor={`d-${r.k}-${l}`}
+                          className={cn(
+                            'inline-flex h-7 items-center gap-2 self-start whitespace-nowrap rounded-chip px-2.5 text-[13px] font-semibold',
+                            FILL[l],
+                          )}
+                        >
                           <LevelBars level={l} />
                           {l} · {LEVEL_NAMES[l]}
                         </label>
@@ -273,7 +289,9 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
                         />
                       </div>
                     ))}
-                    <p className="col-span-full m-0 text-[13px] text-muted">Level 0, Not demonstrated, needs no description: it always reads "Not addressed."</p>
+                    <p className="col-span-full m-0 text-[13px] text-muted">
+                      Level 0, Not demonstrated, needs no description: it always reads "Not addressed."
+                    </p>
                   </div>
                 )}
               </li>
@@ -319,7 +337,11 @@ function Editor({ assessmentKey, data }: { assessmentKey: AssessmentKey; data: R
         </div>
       </div>
       {blocker.state === 'blocked' && (
-        <div role="alertdialog" aria-labelledby="leave-h" className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-[520px] flex-col gap-3 rounded-card border-2 border-sel bg-surface p-4 shadow-pop">
+        <div
+          role="alertdialog"
+          aria-labelledby="leave-h"
+          className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-[520px] flex-col gap-3 rounded-card border-2 border-sel bg-surface p-4 shadow-pop"
+        >
           <h2 id="leave-h" className="m-0 text-[16px] font-semibold">
             Leave without saving?
           </h2>

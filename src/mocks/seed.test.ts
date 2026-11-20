@@ -2,17 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { setDemoNow } from '@/lib/demo-clock'
 import { formatScore } from '@/lib/scoring'
 import { createSeedState } from './db'
-import {
-  conflicts,
-  myTeamsView,
-  overviewView,
-  releaseAssessment,
-  saveDraft,
-  studentHomeView,
-  submitEvaluation,
-  teamAssessment,
-  teamFinal,
-} from './logic'
+import { conflicts, myTeamsView, overviewView, releaseAssessment, saveDraft, studentHomeView, submitEvaluation, teamAssessment, teamFinal } from './logic'
 
 beforeAll(() => setDemoNow(new Date(2030, 2, 13, 14, 30)))
 afterAll(() => setDemoNow(null))
@@ -69,7 +59,7 @@ describe('demo seed', () => {
     expect(v.nextUp?.row.assessment.key).toBe('FINAL_REPORT')
   })
 
-  it("gives Karim an overdue advisor draft for Delta", () => {
+  it('gives Karim an overdue advisor draft for Delta', () => {
     const v = myTeamsView(createSeedState(), 'r-karim')
     const delta = v.cards.find((c) => c.team.name === 'Delta')!
     expect(delta.role).toBe('ADVISOR')

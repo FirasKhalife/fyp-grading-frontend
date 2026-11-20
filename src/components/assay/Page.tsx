@@ -86,7 +86,12 @@ export function useMainFocus() {
 export function Main({ children, className }: { children: ReactNode; className?: string }) {
   const focus = useMainFocus()
   return (
-    <main id="main" tabIndex={-1} {...focus} className={cn('mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-20 pt-7 outline-none md:px-10', className)}>
+    <main
+      id="main"
+      tabIndex={-1}
+      {...focus}
+      className={cn('mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-20 pt-7 outline-none md:px-10', className)}
+    >
       {children}
     </main>
   )

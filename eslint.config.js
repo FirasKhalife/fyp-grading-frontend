@@ -1,4 +1,5 @@
 import js from '@eslint/js'
+import prettier from 'eslint-config-prettier'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
@@ -17,4 +18,6 @@ export default tseslint.config(
       'react-refresh/only-export-components': 'off',
     },
   },
+  // Last: turns off the stylistic rules that would fight Prettier (formatting is Prettier's job, `npm run format`).
+  prettier,
 )

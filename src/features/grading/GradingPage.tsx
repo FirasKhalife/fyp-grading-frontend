@@ -56,8 +56,7 @@ export function GradingPage() {
             </>
           }
         >
-          The server didn't respond. Your draft is saved and nothing was lost. Try again; if it keeps happening, the demo may be restarting, so wait a
-          minute.
+          The server didn't respond. Your draft is saved and nothing was lost. Try again; if it keeps happening, the demo may be restarting, so wait a minute.
         </ErrorState>
       </Main>
     )
@@ -190,8 +189,8 @@ function GradingForm({ view }: { view: GradingView }) {
           </div>
           {!locked && (
             <p className="m-0 max-w-[860px] text-ink2">
-              For each criterion, pick the description that best matches the work. Tab moves between criteria, arrow keys move between levels. Your
-              draft saves as you go.
+              For each criterion, pick the description that best matches the work. Tab moves between criteria, arrow keys move between levels. Your draft saves
+              as you go.
             </p>
           )}
         </div>
@@ -251,7 +250,8 @@ function GradingForm({ view }: { view: GradingView }) {
                         Weight <span className="mono font-semibold text-ink">{c.weight}%</span>
                       </span>
                       <span>
-                        <span className="mono text-[15px] font-semibold text-ink">{lvl === null ? '–' : formatScore((lvl * c.weight) / 4)}</span> / {c.weight} pts
+                        <span className="mono text-[15px] font-semibold text-ink">{lvl === null ? '–' : formatScore((lvl * c.weight) / 4)}</span> / {c.weight}{' '}
+                        pts
                       </span>
                     </div>
                   </div>
@@ -421,7 +421,9 @@ function GradingForm({ view }: { view: GradingView }) {
                       {p.you && ' (you)'}
                     </span>
                     {p.state === 'SUBMITTED' ? (
-                      <StatusChip kind="submitted">{p.at ? (daysFromToday(p.at) === 0 ? 'Submitted today' : `Submitted ${fmtShort(p.at)}`) : 'Submitted'}</StatusChip>
+                      <StatusChip kind="submitted">
+                        {p.at ? (daysFromToday(p.at) === 0 ? 'Submitted today' : `Submitted ${fmtShort(p.at)}`) : 'Submitted'}
+                      </StatusChip>
                     ) : p.state === 'DRAFT' ? (
                       <StatusChip kind="draft" />
                     ) : (
@@ -461,7 +463,12 @@ function GradingForm({ view }: { view: GradingView }) {
 
 function ConfirmBox({ score, onConfirm, onCancel, busy }: { score: string; onConfirm: () => void; onCancel: () => void; busy: boolean }) {
   return (
-    <div role="alertdialog" aria-labelledby="confirm-h" aria-describedby="confirm-d" className="flex flex-col gap-3 rounded-[12px] border-2 border-sel bg-pri-soft p-4">
+    <div
+      role="alertdialog"
+      aria-labelledby="confirm-h"
+      aria-describedby="confirm-d"
+      className="flex flex-col gap-3 rounded-[12px] border-2 border-sel bg-pri-soft p-4"
+    >
       <h3 id="confirm-h" className="m-0 text-[16px] font-semibold">
         Submit with a score of {score}?
       </h3>
@@ -527,7 +534,11 @@ function MobileScoreBar(p: {
             )}
           </div>
           {!p.locked && p.remaining > 0 && (
-            <button type="button" onClick={p.onNext} className="inline-flex min-h-11 cursor-pointer items-center self-start bg-transparent p-0 text-[14px] font-semibold text-amber underline">
+            <button
+              type="button"
+              onClick={p.onNext}
+              className="inline-flex min-h-11 cursor-pointer items-center self-start bg-transparent p-0 text-[14px] font-semibold text-amber underline"
+            >
               {p.remaining} left to score · go to criterion {p.nextN}
             </button>
           )}

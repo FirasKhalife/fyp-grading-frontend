@@ -1,15 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { bandOf } from '@/domain/levels'
-import {
-  criterionPoints,
-  finalGrade,
-  formatScore,
-  isComplete,
-  reviewerScore,
-  spread,
-  teamAssessmentGrade,
-  weightsTotal,
-} from './scoring'
+import { criterionPoints, finalGrade, formatScore, isComplete, reviewerScore, spread, teamAssessmentGrade, weightsTotal } from './scoring'
 
 describe('reviewerScore', () => {
   it('matches the brief: levels 4, 3, 2 on weights 20/40/40 give 70.0', () => {

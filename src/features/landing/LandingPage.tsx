@@ -99,8 +99,8 @@ export function LandingPage() {
               A jury grades a final-year project against one rubric. Assay does the arithmetic and shows students why.
             </h1>
             <p className="m-0 max-w-[680px] text-[18px] leading-7 text-ink2">
-              Reviewers click the level description that matches the work. Assay weights each criterion, averages the reviewers into a team grade,
-              tracks due dates and defenses, and releases results to students one assessment at a time.
+              Reviewers click the level description that matches the work. Assay weights each criterion, averages the reviewers into a team grade, tracks due
+              dates and defenses, and releases results to students one assessment at a time.
             </p>
           </div>
           <aside aria-labelledby="path-h" className="flex min-w-0 flex-[1_1_360px] flex-col gap-4 rounded-[16px] border border-line bg-surface p-6">
@@ -152,9 +152,15 @@ export function LandingPage() {
           )}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5">
             {cards.map((p) => (
-              <article key={p.role === 'STUDENT' ? 'student' : p.id} className="flex flex-col gap-4 rounded-[16px] border border-line bg-surface p-6 transition-colors duration-150 hover:border-pri">
+              <article
+                key={p.role === 'STUDENT' ? 'student' : p.id}
+                className="flex flex-col gap-4 rounded-[16px] border border-line bg-surface p-6 transition-colors duration-150 hover:border-pri"
+              >
                 <div className="flex items-center gap-3">
-                  <span aria-hidden="true" className={cn('flex size-12 items-center justify-center rounded-full text-[16px] font-semibold', AVATAR_CLASS[p.id])}>
+                  <span
+                    aria-hidden="true"
+                    className={cn('flex size-12 items-center justify-center rounded-full text-[16px] font-semibold', AVATAR_CLASS[p.id])}
+                  >
                     {p.firstName[0]}
                     {p.lastName[0]}
                   </span>
@@ -225,8 +231,8 @@ export function LandingPage() {
               About your private copy
             </h2>
             <p className="m-0 text-[15px] leading-[23px] text-ink2">
-              Your first click creates a fresh copy of the demo data, just for this browser. Nobody else sees what you grade or release. Every copy is
-              deleted at midnight, Paris time, and you can start over at any point with "Reset my demo".
+              Your first click creates a fresh copy of the demo data, just for this browser. Nobody else sees what you grade or release. Every copy is deleted
+              at midnight, Paris time, and you can start over at any point with "Reset my demo".
             </p>
           </div>
           <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2">

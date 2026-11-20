@@ -59,7 +59,14 @@ function problem(status: number, code: string, detail: string, extra: Record<str
   const headers: Record<string, string> = { 'Content-Type': 'application/problem+json' }
   if (typeof retryAfter === 'number') headers['Retry-After'] = String(retryAfter)
   return HttpResponse.json(
-    { type: `https://assay.dev/problems/${code}`, title: code.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()), status, code, detail, ...rest } as JsonBodyType,
+    {
+      type: `https://assay.dev/problems/${code}`,
+      title: code.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()),
+      status,
+      code,
+      detail,
+      ...rest,
+    } as JsonBodyType,
     { status, headers },
   )
 }
@@ -175,7 +182,7 @@ function route(fn: (c: Ctx) => Response | Promise<Response>, opts: { write?: boo
 }
 
 const json = (body: unknown, status = 200) => HttpResponse.json(body as JsonBodyType, { status })
-const page = <T,>(content: T[], number = 0, size = 100) => ({
+const page = <T>(content: T[], number = 0, size = 100) => ({
   content,
   page: { size, number, totalElements: content.length, totalPages: content.length ? 1 : 0 },
 })
@@ -272,14 +279,31 @@ export const handlers = [
       tryThings,
     })
     return json([
-      p('coordinator', 'rania.haddad', 'Rania Haddad', 'Coordinator', ['ADMIN', 'REVIEWER'], ['Release the advisor assessment results', 'Fix the defense conflict on day 3', "Open Team Beta's reviewer spread"]),
-      p('jury', 'jane.smith', 'Jane Smith', 'Jury member', ['REVIEWER'], ['Finish the Team Beta final report draft', "Grade Team Epsilon's final presentation"]),
+      p(
+        'coordinator',
+        'rania.haddad',
+        'Rania Haddad',
+        'Coordinator',
+        ['ADMIN', 'REVIEWER'],
+        ['Release the advisor assessment results', 'Fix the defense conflict on day 3', "Open Team Beta's reviewer spread"],
+      ),
+      p(
+        'jury',
+        'jane.smith',
+        'Jane Smith',
+        'Jury member',
+        ['REVIEWER'],
+        ['Finish the Team Beta final report draft', "Grade Team Epsilon's final presentation"],
+      ),
       p('advisor', 'karim.nassar', 'Karim Nassar', 'Advisor', ['REVIEWER'], ['Submit the overdue advisor assessment for Team Delta']),
       p('student', 'nour.khoury', 'Nour Khoury', 'Student', ['STUDENT'], ["Read the jury's comments on your final presentation"]),
       p('student-waiting', 'ahmad.fares', 'Ahmad Fares', 'Student', ['STUDENT'], ['See what a student sees before results are released']),
     ])
   }),
-  http.get(`${API}/demo/session`, route(() => json(demoSessionDto()))),
+  http.get(
+    `${API}/demo/session`,
+    route(() => json(demoSessionDto())),
+  ),
   http.put(
     `${API}/demo/session`,
     route(
@@ -311,7 +335,13 @@ export const handlers = [
     `${API}/me`,
     route(({ user }) => {
       const p = user.kind === 'reviewer' ? user.r : user.s
-      const personas: Record<string, NonNullable<S<'Me'>['personaKey']>> = { 'r-rania': 'coordinator', 'r-jane': 'jury', 'r-karim': 'advisor', 's-nour': 'student', 's-ahmad': 'student-waiting' }
+      const personas: Record<string, NonNullable<S<'Me'>['personaKey']>> = {
+        'r-rania': 'coordinator',
+        'r-jane': 'jury',
+        'r-karim': 'advisor',
+        's-nour': 'student',
+        's-ahmad': 'student-waiting',
+      }
       const persona = personas[p.id] ?? null
       return json({
         ...person(p),
@@ -422,7 +452,10 @@ export const handlers = [
   ),
 
   // Assessments
-  http.get(`${API}/assessments`, route(({ read }) => json(ASSESSMENTS.map((a) => assessmentDto(read(), a.key))))),
+  http.get(
+    `${API}/assessments`,
+    route(({ read }) => json(ASSESSMENTS.map((a) => assessmentDto(read(), a.key)))),
+  ),
   http.patch(
     `${API}/assessments/:assessment`,
     route(
@@ -511,7 +544,11 @@ export const handlers = [
           disagreementThreshold: v.insights.threshold,
           finalGradeDistribution: gradeDistribution(rows.flatMap((r) => (r.finalGrade == null ? [] : [r.finalGrade]))),
           disagreements: rows
-            .flatMap((r) => r.cells.filter((c) => c.disagreement).map((c) => ({ team: r.team, assessment: c.assessment, spread: c.spread!, submittedCount: c.submittedCount })))
+            .flatMap((r) =>
+              r.cells
+                .filter((c) => c.disagreement)
+                .map((c) => ({ team: r.team, assessment: c.assessment, spread: c.spread!, submittedCount: c.submittedCount })),
+            )
             .sort((a, b) => b.spread - a.spread),
         },
       } satisfies S<'Overview'>)
@@ -578,7 +615,10 @@ export const handlers = [
         const b = await body<S<'TeamCreate'>>(request)
         if (!b?.name?.trim() || !b.projectTitle?.trim()) {
           throw new Problem(400, 'validation-failed', 'Give the team a name and a project title.', {
-            errors: [!b?.name?.trim() && { field: 'name', message: 'is required' }, !b?.projectTitle?.trim() && { field: 'projectTitle', message: 'is required' }].filter(Boolean),
+            errors: [
+              !b?.name?.trim() && { field: 'name', message: 'is required' },
+              !b?.projectTitle?.trim() && { field: 'projectTitle', message: 'is required' },
+            ].filter(Boolean),
           })
         }
         const t = store.mutate((s) => {
@@ -596,7 +636,8 @@ export const handlers = [
     route(({ user, read, params }) => {
       const state = read()
       const t = logic.team(state, String(params.teamId))
-      if (!isAdmin(user) && !(user.kind === 'reviewer' && t.members.some((m) => m.reviewerId === user.r.id))) throw new Problem(403, 'forbidden', 'This team is not yours.')
+      if (!isAdmin(user) && !(user.kind === 'reviewer' && t.members.some((m) => m.reviewerId === user.r.id)))
+        throw new Problem(403, 'forbidden', 'This team is not yours.')
       return json(teamDto(state, t.id, isAdmin(user)))
     }),
   ),
@@ -711,7 +752,8 @@ export const handlers = [
     route(({ user, read, params }) => {
       const state = read()
       const t = logic.team(state, String(params.teamId))
-      if (!isAdmin(user) && !(user.kind === 'reviewer' && t.members.some((m) => m.reviewerId === user.r.id))) throw new Problem(403, 'forbidden', 'This team is not yours.')
+      if (!isAdmin(user) && !(user.kind === 'reviewer' && t.members.some((m) => m.reviewerId === user.r.id)))
+        throw new Problem(403, 'forbidden', 'This team is not yours.')
       return json({ reviewers: teamReviewers(state, t), composition: compositionDto(t) } satisfies S<'TeamReviewers'>)
     }),
   ),
@@ -738,16 +780,32 @@ export const handlers = [
             const submitted = s.evaluations.some((e) => e.teamId === id && e.reviewerId === m.reviewerId && e.status === 'SUBMITTED')
             if (submitted && (!after || after.role !== m.role)) {
               const r = s.reviewers.find((x) => x.id === m.reviewerId)!
-              throw new DemoError(409, `${r.firstName} ${r.lastName} has submitted evaluations for this team, so they stay on it with the same role.`, 'reviewer-has-submissions')
+              throw new DemoError(
+                409,
+                `${r.firstName} ${r.lastName} has submitted evaluations for this team, so they stay on it with the same role.`,
+                'reviewer-has-submissions',
+              )
             }
           }
           // Contract 1.3.0: a final team grade keeps its reviewers.
           for (const a of ASSESSMENTS) {
             if (logic.teamAssessment(s, id, a.key).grade === null) continue
-            const before = t.members.filter((m) => m.role === a.role).map((m) => m.reviewerId).sort().join()
-            const after = next.filter((x) => x.role === a.role).map((x) => x.reviewerId).sort().join()
+            const before = t.members
+              .filter((m) => m.role === a.role)
+              .map((m) => m.reviewerId)
+              .sort()
+              .join()
+            const after = next
+              .filter((x) => x.role === a.role)
+              .map((x) => x.reviewerId)
+              .sort()
+              .join()
             if (before !== after) {
-              throw new Problem(409, 'assessment-final', `The ${a.name} grade for Team ${t.name} is already final, so its ${a.role === 'JURY' ? 'jury' : 'advisor'} can't change.`)
+              throw new Problem(
+                409,
+                'assessment-final',
+                `The ${a.name} grade for Team ${t.name} is already final, so its ${a.role === 'JURY' ? 'jury' : 'advisor'} can't change.`,
+              )
             }
           }
           const added = next.filter((a) => !t.members.some((m) => m.reviewerId === a.reviewerId))
@@ -764,7 +822,13 @@ export const handlers = [
               read: false,
             })
             const r = s.reviewers.find((x) => x.id === a.reviewerId)!
-            logic.activity(s, 'assignment', 'Assignment', `${r.firstName} ${r.lastName} joined Team ${t.name} as ${a.role === 'JURY' ? 'a jury member' : 'the advisor'}.`, id)
+            logic.activity(
+              s,
+              'assignment',
+              'Assignment',
+              `${r.firstName} ${r.lastName} joined Team ${t.name} as ${a.role === 'JURY' ? 'a jury member' : 'the advisor'}.`,
+              id,
+            )
           }
           for (const m of removed) {
             const r = s.reviewers.find((x) => x.id === m.reviewerId)!
@@ -889,8 +953,12 @@ export const handlers = [
           if (x instanceof DemoError && x.code === 'criteria-unscored') {
             const st = store.getState()
             const ev = logic.gradingView(st, r.id, teamId, key)
-            const missing = ev.rubric.criteria.filter((c) => (b?.criteria.find((y) => y.criterionId === c.id)?.level ?? ev.evaluation?.levels[c.id] ?? null) === null)
-            throw new Problem(422, 'criteria-unscored', x.message, { errors: missing.map((c) => ({ field: `criteria[${c.id}].level`, message: 'must be scored' })) })
+            const missing = ev.rubric.criteria.filter(
+              (c) => (b?.criteria.find((y) => y.criterionId === c.id)?.level ?? ev.evaluation?.levels[c.id] ?? null) === null,
+            )
+            throw new Problem(422, 'criteria-unscored', x.message, {
+              errors: missing.map((c) => ({ field: `criteria[${c.id}].level`, message: 'must be scored' })),
+            })
           }
           throw x
         }
@@ -927,8 +995,14 @@ export const handlers = [
   ),
 
   // Rubrics
-  http.get(`${API}/rubrics`, route(({ read }) => json(ASSESSMENTS.map((a) => rubricDto(read(), a.key))))),
-  http.get(`${API}/rubrics/:assessment`, route(({ read, params }) => json(rubricDto(read(), code(params.assessment))))),
+  http.get(
+    `${API}/rubrics`,
+    route(({ read }) => json(ASSESSMENTS.map((a) => rubricDto(read(), a.key)))),
+  ),
+  http.get(
+    `${API}/rubrics/:assessment`,
+    route(({ read, params }) => json(rubricDto(read(), code(params.assessment)))),
+  ),
   http.put(
     `${API}/rubrics/:assessment`,
     route(
@@ -936,7 +1010,9 @@ export const handlers = [
         requireAdmin(user)
         const key = code(params.assessment)
         const b = await body<S<'RubricPut'>>(request)
-        const bad = (b?.criteria ?? []).flatMap((c, i) => (Number.isInteger(c.weight) ? [] : [{ field: `criteria[${i}].weight`, message: 'must be a whole number' }]))
+        const bad = (b?.criteria ?? []).flatMap((c, i) =>
+          Number.isInteger(c.weight) ? [] : [{ field: `criteria[${i}].weight`, message: 'must be a whole number' }],
+        )
         if (bad.length) throw new Problem(400, 'validation-failed', 'Weights must be whole numbers.', { errors: bad })
         if (!b?.criteria?.length) throw new Problem(422, 'rubric-empty', 'A rubric needs at least one criterion.')
         const criteria: Criterion[] = (b?.criteria ?? []).map((c) => ({
@@ -993,42 +1069,42 @@ export const handlers = [
   typeof EventSource === 'undefined'
     ? http.get(`${API}/notifications/stream`, () => new HttpResponse(new ReadableStream({ start() {} }), { headers: { 'Content-Type': 'text/event-stream' } }))
     : sse(`${API}/notifications/stream`, ({ client, request }) => {
-    let user: User
-    try {
-      sessionOf(request)
-      user = identify(request, store.getState())
-    } catch {
-      client.error()
-      return
-    }
-    const id = userId(user)
-    const admin = isAdmin(user)
-    const seenN = new Set((store.getState().notifications[id] ?? []).map((n) => n.id))
-    const seenA = new Set(store.getState().activity.map((a) => a.id))
-    let unread = logic.notificationsView(store.getState(), id).unread
-    const off = store.subscribe(() => {
-      if (!store.hasCopy()) return
-      const state = store.getState()
-      for (const n of [...(state.notifications[id] ?? [])].reverse()) {
-        if (seenN.has(n.id)) continue
-        seenN.add(n.id)
-        client.send({ event: 'notification', id: n.id, data: JSON.stringify(notificationDto(n)) } as never)
-      }
-      if (admin) {
-        for (const a of [...state.activity].reverse()) {
-          if (seenA.has(a.id)) continue
-          seenA.add(a.id)
-          client.send({ event: 'activity', id: a.id, data: JSON.stringify(activityDto(state, a)) } as never)
+        let user: User
+        try {
+          sessionOf(request)
+          user = identify(request, store.getState())
+        } catch {
+          client.error()
+          return
         }
-      }
-      const u = logic.notificationsView(state, id).unread
-      if (u !== unread) {
-        unread = u
-        client.send({ event: 'unread-count', data: JSON.stringify({ unreadCount: u }) } as never)
-      }
-    })
-    request.signal.addEventListener('abort', off)
-  }),
+        const id = userId(user)
+        const admin = isAdmin(user)
+        const seenN = new Set((store.getState().notifications[id] ?? []).map((n) => n.id))
+        const seenA = new Set(store.getState().activity.map((a) => a.id))
+        let unread = logic.notificationsView(store.getState(), id).unread
+        const off = store.subscribe(() => {
+          if (!store.hasCopy()) return
+          const state = store.getState()
+          for (const n of [...(state.notifications[id] ?? [])].reverse()) {
+            if (seenN.has(n.id)) continue
+            seenN.add(n.id)
+            client.send({ event: 'notification', id: n.id, data: JSON.stringify(notificationDto(n)) } as never)
+          }
+          if (admin) {
+            for (const a of [...state.activity].reverse()) {
+              if (seenA.has(a.id)) continue
+              seenA.add(a.id)
+              client.send({ event: 'activity', id: a.id, data: JSON.stringify(activityDto(state, a)) } as never)
+            }
+          }
+          const u = logic.notificationsView(state, id).unread
+          if (u !== unread) {
+            unread = u
+            client.send({ event: 'unread-count', data: JSON.stringify({ unreadCount: u }) } as never)
+          }
+        })
+        request.signal.addEventListener('abort', off)
+      }),
   http.get(
     `${API}/activity`,
     route(({ user, read, request }) => {

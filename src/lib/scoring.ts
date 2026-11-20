@@ -2,7 +2,7 @@ import { roundTo1 } from '@/domain/levels'
 import type { Level } from '@/domain/types'
 
 /**
- * Score maths from PRODUCT-BRIEF.md section 4.2. Every function is pure so the rules are unit-tested
+ * Score maths from fyp-grading-docker-compose/docs/project/PRODUCT-BRIEF.md section 4.2. Every function is pure so the rules are unit-tested
  * in one place, and the mock backend uses the same functions as the screens.
  */
 

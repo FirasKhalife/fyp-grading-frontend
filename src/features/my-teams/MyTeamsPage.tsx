@@ -41,8 +41,7 @@ export function MyTeamsPage() {
             </>
           }
         >
-          The server didn't respond. Your drafts are saved and nothing was lost. Try again; if it keeps happening, the demo may be restarting, so
-          wait a minute.
+          The server didn't respond. Your drafts are saved and nothing was lost. Try again; if it keeps happening, the demo may be restarting, so wait a minute.
         </ErrorState>
       </Main>
     )
@@ -206,7 +205,10 @@ function TeamCard({ card }: { card: MyTeamCard }) {
         </div>
       </div>
       <div className="px-4 pb-2 pt-1 md:px-6">
-        <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1.6fr)_190px_210px_120px_180px] gap-4 pb-2 pt-3 text-[13px] font-semibold text-muted lg:grid">
+        <div
+          aria-hidden="true"
+          className="hidden grid-cols-[minmax(0,1.6fr)_190px_210px_120px_180px] gap-4 pb-2 pt-3 text-[13px] font-semibold text-muted lg:grid"
+        >
           <span>Assessment</span>
           <span>Status</span>
           <span>Due</span>
@@ -240,7 +242,14 @@ function EvalRow({ teamId, teamName, row, defense }: { teamId: string; teamName:
         <span className="mono text-[12px] text-muted">{weightLabel(a.weight)}</span>
       </span>
       <span>
-        {row.state === 'SUBMITTED' && (row.submittedLate ? <StatusChip kind="overdue" icon="lock">Submitted late</StatusChip> : <StatusChip kind="submitted" />)}
+        {row.state === 'SUBMITTED' &&
+          (row.submittedLate ? (
+            <StatusChip kind="overdue" icon="lock">
+              Submitted late
+            </StatusChip>
+          ) : (
+            <StatusChip kind="submitted" />
+          ))}
         {row.state === 'DRAFT' && (
           <StatusChip kind={row.overdue ? 'overdue' : 'draft'} icon={row.overdue ? 'clock' : 'pencil'}>
             {row.overdue ? 'Overdue' : 'Draft'} · {row.scored} of {row.total} scored
@@ -287,7 +296,13 @@ function MyTeamsSkeleton({ title }: { title: string }) {
           </div>
           <div className="px-6 pb-2 pt-1">
             {[70, 55, 45, 60].map((w, i) => (
-              <div key={i} className={cn('grid grid-cols-[1fr_auto] items-center gap-4 py-3.5 lg:grid-cols-[minmax(0,1.6fr)_190px_210px_120px_180px]', i > 0 && 'border-t border-line')}>
+              <div
+                key={i}
+                className={cn(
+                  'grid grid-cols-[1fr_auto] items-center gap-4 py-3.5 lg:grid-cols-[minmax(0,1.6fr)_190px_210px_120px_180px]',
+                  i > 0 && 'border-t border-line',
+                )}
+              >
                 <Skeleton className="h-4" style={{ width: `${w}%` }} />
                 <Skeleton className="h-[26px] w-[110px] rounded-full" />
                 <Skeleton className="hidden h-3.5 w-[120px] lg:block" />

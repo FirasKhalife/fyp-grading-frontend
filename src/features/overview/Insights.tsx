@@ -52,15 +52,21 @@ function Distribution({ bands }: { bands: Band[] }) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={bands} margin={{ top: 8, right: 4, bottom: 0, left: -24 }} barCategoryGap={2} accessibilityLayer={false}>
                 <XAxis dataKey="from" tickLine={false} axisLine={{ stroke: 'var(--line)' }} tick={{ fill: 'var(--muted)', fontSize: 11 }} interval={0} />
-                <YAxis allowDecimals={false} domain={[0, top]} tickCount={Math.min(top, 4) + 1} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted)', fontSize: 11 }} width={40} />
+                <YAxis
+                  allowDecimals={false}
+                  domain={[0, top]}
+                  tickCount={Math.min(top, 4) + 1}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                  width={40}
+                />
                 <Tooltip cursor={{ fill: 'var(--raised)' }} content={<BandTip />} isAnimationActive={false} />
                 <Bar dataKey="count" fill="var(--pri)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <figcaption className="text-[13px] text-ink2">
-            {summary} Each bar is a 10-point band, labelled by where it starts.
-          </figcaption>
+          <figcaption className="text-[13px] text-ink2">{summary} Each bar is a 10-point band, labelled by where it starts.</figcaption>
           <table className="sr-only">
             <caption>Final grades per 10-point band</caption>
             <thead>

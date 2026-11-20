@@ -1,27 +1,6 @@
 import { ASSESSMENTS, assessmentDef } from '@/domain/assessments'
-import type {
-  Activity,
-  AppNotification,
-  AssessmentKey,
-  Evaluation,
-  Level,
-  Release,
-  Reviewer,
-  Rubric,
-  Student,
-  Team,
-} from '@/domain/types'
-import {
-  fmtDay,
-  fmtRelativeDays,
-  fmtShort,
-  fmtTime,
-  isoAt,
-  isoDay,
-  isoMinutesAgo,
-  now,
-  parseLocal,
-} from '@/lib/demo-clock'
+import type { Activity, AppNotification, AssessmentKey, Evaluation, Level, Release, Reviewer, Rubric, Student, Team } from '@/domain/types'
+import { fmtDay, fmtRelativeDays, fmtShort, fmtTime, isoAt, isoDay, isoMinutesAgo, now, parseLocal } from '@/lib/demo-clock'
 import { formatScore } from '@/lib/scoring'
 import { ACTIVITY, NOTIFICATIONS, type FeedSpec } from './seed/feed'
 import { COMMENT_POOL, EVALUATIONS, RELEASES } from './seed/evaluations'
@@ -104,8 +83,7 @@ export function createSeedState(): DemoState {
       const rubric = rubrics.find((r) => r.assessment === key)!
       const weights = rubric.criteria.map((c) => c.weight)
       list.forEach((e, k) => {
-        const levelsArr: (Level | null)[] =
-          e.levels ?? solveLevels(weights, e.score ?? 0, e.prefer, hash(teamId + key + e.reviewer) % 997)
+        const levelsArr: (Level | null)[] = e.levels ?? solveLevels(weights, e.score ?? 0, e.prefer, hash(teamId + key + e.reviewer) % 997)
         const levels: Record<string, Level | null> = {}
         const comments: Record<string, string> = {}
         rubric.criteria.forEach((c, i) => {
@@ -130,7 +108,14 @@ export function createSeedState(): DemoState {
           submittedAt: e.status === 'SUBMITTED' ? stamp : null,
           history: (e.history ?? []).map((h) => {
             const c = h.criterion !== undefined ? rubric.criteria[h.criterion] : undefined
-            return { at: past(h.at[0], h.at[1]), kind: h.kind, criterionId: c?.id ?? null, criterionName: c?.name ?? null, from: h.from ?? null, to: h.to ?? null }
+            return {
+              at: past(h.at[0], h.at[1]),
+              kind: h.kind,
+              criterionId: c?.id ?? null,
+              criterionName: c?.name ?? null,
+              from: h.from ?? null,
+              to: h.to ?? null,
+            }
           }),
         })
       })
