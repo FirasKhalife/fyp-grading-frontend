@@ -3,10 +3,17 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { ApiError, setSessionProblemHandler, setTokenProvider, setUnauthorizedHandler } from '@/api/client'
 import { repository, type Viewer } from '@/api/repository'
 import { setSessionToday } from '@/lib/demo-clock'
-import { markCopyCreated, markOvernightReset, resetBrowserDemoSessionId, wasPurged } from './demo-session'
+import { hasBrowserDemoSessionId, markCopyCreated, markOvernightReset, resetBrowserDemoSessionId, wasPurged } from './demo-session'
 import { accessToken, completeSignIn, currentUser, dropUser, oidcEnabled, signInPersona, signInWithEmail, signOut } from './oidc'
 import { identityFrom, personaById, type Persona, type PersonaId } from './personas'
 
+/**
+ * The last persona picked in this browser: its key only, never a token (tokens stay in sessionStorage).
+ * Offline it is the sign-in itself; with Keycloak it lets a new tab of the same browser sign that persona
+ * in again with the same one-click password grant. The personas are public accounts with a public
+ * password, so this reveals nothing new. Sign-out, "Reset my demo", an expired session and "Sign in with
+ * email" clear it; "Switch role" replaces it.
+ */
 const PERSONA_KEY = 'assay-persona'
 
 export interface AuthState {
@@ -51,6 +58,24 @@ function writePersona(p: Persona | null) {
     else localStorage.removeItem(PERSONA_KEY)
   } catch {
     /* private mode */
+  }
+}
+
+/**
+ * With Keycloak, a new tab has no token (sessionStorage is per tab). If this browser picked a persona
+ * before and already has a demo session id, sign that persona in again silently, so the tab continues
+ * on the same private copy. Email (code flow) users are never remembered and get the role picker.
+ */
+async function resumePersona(): Promise<boolean> {
+  const p = readPersona()
+  if (!p || !hasBrowserDemoSessionId()) return false
+  try {
+    await signInPersona(p.username)
+    signedInAs = p
+    return true
+  } catch {
+    writePersona(null)
+    return false
   }
 }
 
@@ -158,7 +183,8 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
       }
       const p = persona
       try {
-        const signedIn = oidcEnabled ? (await currentUser()) !== null : p !== null
+        let signedIn = oidcEnabled ? (await currentUser()) !== null : p !== null
+        if (oidcEnabled && !signedIn) signedIn = await resumePersona()
         if (signedIn) {
           if (p) signedInAs = p
           // The copy first: every other call, /api/me included, needs it.
@@ -209,6 +235,7 @@ export function AuthProvider({ children, initialPersona }: { children: ReactNode
 
   const completeEmailSignIn = useCallback(async () => {
     const { returnTo } = await completeSignIn()
+    writePersona(null) // an email sign-in is not a persona: a new tab shows the role picker
     // The copy before /api/me, which answers 404 without one (a brand-new browser has none yet).
     setCreating(true)
     try {

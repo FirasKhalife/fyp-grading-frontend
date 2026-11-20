@@ -1,4 +1,4 @@
-import { Fragment, useEffect, type ReactNode } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, type FocusEvent, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { cn } from '@/lib/cn'
 
@@ -46,10 +46,47 @@ export function PageTitle({ children, className, id }: { children: ReactNode; cl
   )
 }
 
+/**
+ * The <main> that has focus (the skip link's target), while it has it. A screen swaps its loading
+ * <main> for the loaded one; without this, focus would drop to <body> when the old one goes away.
+ */
+let focusedMain: HTMLElement | null = null
+
+/** Keeps focus on the main region when a screen replaces its <main> (skeleton → content, Suspense → page). */
+export function useMainFocus() {
+  const ref = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    const prev = focusedMain
+    if (el && prev && prev !== el && !prev.isConnected) {
+      const active = document.activeElement
+      if (!active || active === document.body || !active.isConnected) {
+        el.focus({ preventScroll: true })
+        focusedMain = el
+      }
+    }
+  }, [])
+  const onFocus = (e: FocusEvent<HTMLElement>) => {
+    if (e.target === e.currentTarget) focusedMain = e.currentTarget
+  }
+  const onBlur = (e: FocusEvent<HTMLElement>) => {
+    if (e.target !== e.currentTarget) return
+    const el = e.currentTarget
+    // Focus moved somewhere real, or the main is still there (a click elsewhere): nothing to restore.
+    if (e.relatedTarget) focusedMain = null
+    else
+      setTimeout(() => {
+        if (focusedMain === el && el.isConnected) focusedMain = null
+      })
+  }
+  return { ref, onFocus, onBlur }
+}
+
 /** The page container shared by every signed-in screen. */
 export function Main({ children, className }: { children: ReactNode; className?: string }) {
+  const focus = useMainFocus()
   return (
-    <main id="main" tabIndex={-1} className={cn('mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-20 pt-7 outline-none md:px-10', className)}>
+    <main id="main" tabIndex={-1} {...focus} className={cn('mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-20 pt-7 outline-none md:px-10', className)}>
       {children}
     </main>
   )

@@ -52,6 +52,11 @@ export function setBrowserDemoSessionId(id: string) {
   memoryId = id
 }
 
+/** True when this browser already has an id (and so possibly a copy); does not create one. */
+export function hasBrowserDemoSessionId(): boolean {
+  return (safeGet(SESSION_KEY) ?? memoryId) !== null
+}
+
 export function browserDemoSessionId(): string {
   let id = safeGet(SESSION_KEY) ?? memoryId
   if (!id) {

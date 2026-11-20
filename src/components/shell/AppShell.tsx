@@ -3,6 +3,7 @@ import { Outlet, ScrollRestoration } from 'react-router'
 import { useLiveUpdates } from '@/api/queries'
 import { useAuth } from '@/auth/AuthProvider'
 import { Icon } from '../assay/Icon'
+import { Main } from '../assay/Page'
 import { AppHeader } from './AppHeader'
 import { DemoBanner } from './DemoBanner'
 
@@ -28,9 +29,11 @@ export function AppShell() {
       <AppHeader />
       <Suspense
         fallback={
-          <div role="status" aria-label="Loading" className="mx-auto max-w-[1360px] px-4 pt-7 md:px-10">
-            <span className="sk block h-10 w-72" />
-          </div>
+          <Main>
+            <div role="status" aria-label="Loading">
+              <span className="sk block h-10 w-72" />
+            </div>
+          </Main>
         }
       >
         <Outlet />

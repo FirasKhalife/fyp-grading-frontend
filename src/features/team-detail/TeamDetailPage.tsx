@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
 import { auditText } from '@/domain/audit'
 import { NotFoundPage } from '../utility/UtilityPages'
+import { countsTowardFinal, weightLabel } from '@/lib/weight'
 
 const field =
   'min-h-11 w-full rounded-ctl border border-line2 bg-surface px-3 py-2.5 text-[15px] leading-[22px] text-ink placeholder:text-muted'
@@ -173,7 +174,7 @@ function AssessmentRow({ a, i, teamName }: { a: Row; i: number; teamName: string
     a.assessment.role === 'JURY' ? 'Jury' : 'Advisor',
     `${a.submitted} of ${a.expected} submitted`,
     a.release ? `released to students ${fmtShort(a.release.at)}` : a.grade !== null ? 'final, not released yet' : a.overdue ? `overdue since ${fmtShort(a.assessment.due)}` : `due ${fmtShort(a.assessment.due)}`,
-    a.assessment.weight === 0 ? 'required for the final grade' : '',
+    countsTowardFinal(a.assessment.weight) ? '' : 'not counted in the final grade',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -208,7 +209,7 @@ function AssessmentRow({ a, i, teamName }: { a: Row; i: number; teamName: string
             <Accordion.Trigger className="group flex min-h-[72px] w-full cursor-pointer flex-wrap items-center justify-between gap-4 rounded-card border-0 bg-transparent px-5 py-4 text-left text-ink hover:bg-raised">
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-[17px] font-semibold">
-                  {a.assessment.name} <span className="mono text-[14px] font-medium text-muted">{a.assessment.weight}%</span>
+                  {a.assessment.name} <span className="mono text-[14px] font-medium text-muted">{weightLabel(a.assessment.weight, 'short')}</span>
                 </span>
                 <span className="text-[13px] text-muted">{meta}</span>
               </span>

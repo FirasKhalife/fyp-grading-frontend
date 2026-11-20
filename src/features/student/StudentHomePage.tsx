@@ -15,6 +15,7 @@ import { ErrorState } from '@/components/assay/States'
 import { StatusChip } from '@/components/assay/StatusChip'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
+import { countsTowardFinal, weightLabel } from '@/lib/weight'
 
 /** P11: the student's team, timeline, defense slot and released results. */
 export function StudentHomePage() {
@@ -92,7 +93,7 @@ function StudentHome({ v }: { v: StudentHomeView }) {
                           {r.assessment.shortName === 'Final pres.' ? 'Final presentation' : r.assessment.shortName === 'Progress' ? 'Progress report' : r.assessment.shortName}
                         </th>
                         <td className="mono py-1.5 text-right">
-                          {formatScore(r.grade ?? 0)} × {r.assessment.weight}%
+                          {countsTowardFinal(r.assessment.weight) ? `${formatScore(r.grade ?? 0)} × ${r.assessment.weight}%` : `${formatScore(r.grade ?? 0)} · not counted`}
                         </td>
                         <td className="mono w-14 py-1.5 text-right font-semibold">{(((r.grade ?? 0) * r.assessment.weight) / 100).toFixed(2)}</td>
                       </tr>
@@ -183,7 +184,7 @@ function StudentHome({ v }: { v: StudentHomeView }) {
 }
 
 function pendingMeta(r: StudentResult, v: StudentHomeView): string {
-  const w = `${r.assessment.weight}% of final grade`
+  const w = weightLabel(r.assessment.weight)
   if (r.assessment.key === 'FINAL_PRESENTATION' && v.team.defense) {
     const d = daysFromToday(v.team.defense.start)
     if (d <= 0) return `${w} · defended ${fmtDay(v.team.defense.start)}, jury is grading`
@@ -223,7 +224,7 @@ function TimelineStep({ r, i, last }: { r: StudentResult; i: number; last: boole
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="font-semibold leading-5">{r.assessment.name}</span>
         <span className="mono text-[12px] text-muted">
-          {r.assessment.weight}%{r.assessment.weight === 0 ? ' · required' : ''} · {due}
+          {weightLabel(r.assessment.weight, 'short')} · {due}
         </span>
         <StatusChip kind={done ? 'releasedSoft' : now ? 'draft' : 'notStarted'} icon={done ? 'eye' : now ? 'half' : 'circle'} className="self-start">
           {status}
@@ -244,7 +245,7 @@ function ResultCard({ r, value }: { r: StudentResult; value: string }) {
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-[17px] font-semibold">{r.assessment.name}</span>
                 <span className="text-[13px] text-muted">
-                  {r.assessment.weight}% of final grade · released {r.release ? fmtShort(r.release.at) : ''}
+                  {weightLabel(r.assessment.weight)} · released {r.release ? fmtShort(r.release.at) : ''}
                 </span>
               </span>
               <span className="flex items-center gap-3">

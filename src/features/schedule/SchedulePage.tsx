@@ -13,6 +13,7 @@ import { ErrorState } from '@/components/assay/States'
 import { StatusChip } from '@/components/assay/StatusChip'
 import { Button } from '@/components/ui/button'
 import { Card, Skeleton } from '@/components/ui/card'
+import { weightLabel } from '@/lib/weight'
 
 const HOUR_PX = 96
 const FIRST_HOUR = 9
@@ -434,7 +435,7 @@ function DueDates({ data, editable }: { data: ScheduleView; editable: boolean })
           <div key={u.assessment.key} className="flex flex-col gap-1.5 border-t border-line pt-3">
             <label htmlFor={id} className="flex justify-between gap-2 font-semibold">
               <span>{u.assessment.name}</span>
-              <span className="mono font-medium text-muted">{u.assessment.weight}%</span>
+              <span className="mono font-medium text-muted">{weightLabel(u.assessment.weight, 'short')}</span>
             </label>
             {editable ? (
               <input
