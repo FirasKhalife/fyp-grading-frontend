@@ -29,11 +29,11 @@ async function submit(page: Page) {
   await expect(page.getByText(/This evaluation is locked/)).toBeVisible()
 }
 
-test('Sign in with email: code flow with PKCE, then a private copy (John Doe, not a persona)', async ({ page }) => {
+test('Sign in with username: code flow with PKCE, then a private copy (John Doe, not a persona)', async ({ page }) => {
   const problems = watch(page)
   await page.goto('/')
   const auth = page.waitForRequest((r) => r.url().includes('/protocol/openid-connect/auth'))
-  await page.getByRole('button', { name: 'Sign in with email' }).click()
+  await page.getByRole('button', { name: 'Sign in with username' }).click()
   const url = new URL((await auth).url())
   expect(url.searchParams.get('response_type')).toBe('code')
   expect(url.searchParams.get('code_challenge_method')).toBe('S256')

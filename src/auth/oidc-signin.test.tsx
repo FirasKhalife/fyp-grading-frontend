@@ -31,8 +31,8 @@ describe('sign-in with Keycloak configured (H1)', () => {
     expect(signedIn.username).toBe('jane.smith')
   })
 
-  it('offers "Sign in with email" (code flow) on the landing page', async () => {
+  it('offers "Sign in with username" (code flow) on the landing page', async () => {
     renderApp('/')
-    expect(await screen.findByRole('button', { name: 'Sign in with email' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Sign in with username' })).toBeInTheDocument()
   })
 })

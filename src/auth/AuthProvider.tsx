@@ -25,7 +25,7 @@ export interface AuthState {
   /** The sign-in expired (a 401): the app shows "Session expired". */
   expired: boolean
   enterAs: (id: PersonaId) => Promise<Persona>
-  /** "Sign in with email": redirects to Keycloak (code flow with PKCE). */
+  /** "Sign in with username": redirects to Keycloak (code flow with PKCE). */
   signInWithEmail: () => Promise<void>
   /** Finishes the code flow on /auth/callback and returns where to go. */
   completeEmailSignIn: () => Promise<string>

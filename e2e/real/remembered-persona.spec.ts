@@ -78,7 +78,7 @@ test('an email sign-in is not remembered: a new tab shows the role picker', asyn
   await enter(page, 'Jane') // a persona picked earlier in this browser
   await page.getByRole('button', { name: /account menu for Jane Smith/ }).click()
   await page.getByRole('menuitem', { name: 'Sign out' }).click()
-  await page.getByRole('button', { name: 'Sign in with email' }).click()
+  await page.getByRole('button', { name: 'Sign in with username' }).click()
   await page.locator('#username').fill('john.doe')
   await page.locator('#password').fill(process.env.VITE_DEMO_PASSWORD ?? 'assay-demo')
   await page.locator('#kc-login').click()
