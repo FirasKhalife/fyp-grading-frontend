@@ -17,7 +17,7 @@ export interface paths {
          *     One-click sign-in: the SPA requests a token from Keycloak (realm `assay`, public client `assay-spa`) with
          *     `grant_type=password`, `username` from this list and the shared demo password from the SPA's config
          *     (`VITE_DEMO_PASSWORD`, value `assay-demo`, published in the README: these accounts are public by design).
-         *     "Sign in with email" uses the authorization code flow with PKCE on the same client, with `login_hint`.
+         *     "Sign in with username" uses the authorization code flow with PKCE on the same client, with `login_hint`.
          */
         get: operations["listPersonas"];
         put?: never;

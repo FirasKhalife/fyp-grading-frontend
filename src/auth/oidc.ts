@@ -6,7 +6,7 @@ import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts'
  * Keycloak on the app's own origin, behind the same edge proxy: the published image then works on any domain.
  * - Persona cards: a token request with the persona's username and the shared demo password
  *   (VITE_DEMO_PASSWORD). These accounts are public by design; the password is not a secret.
- * - "Sign in with email": Authorization Code + PKCE, with a login_hint.
+ * - "Sign in with username": Authorization Code + PKCE, with a login_hint.
  */
 const configuredAuthority = import.meta.env.VITE_OIDC_AUTHORITY as string | undefined
 const authority = configuredAuthority?.startsWith('/') ? `${window.location.origin}${configuredAuthority}` : configuredAuthority
@@ -49,7 +49,7 @@ export async function signInPersona(username: string): Promise<User> {
   return u
 }
 
-/** "Sign in with email": the code flow with PKCE. */
+/** "Sign in with username": the code flow with PKCE. */
 export async function signInWithEmail(loginHint?: string, returnTo = '/home'): Promise<void> {
   setMethod('code')
   await userManager().signinRedirect({ login_hint: loginHint, state: { returnTo } })
@@ -68,7 +68,7 @@ export async function currentUser(): Promise<User | null> {
 }
 
 /**
- * Signs out. A code-flow sign-in also ends the Keycloak session, so the next "Sign in with email"
+ * Signs out. A code-flow sign-in also ends the Keycloak session, so the next "Sign in with username"
  * asks again; a persona's password grant has no browser session to end.
  */
 export async function signOut(): Promise<void> {

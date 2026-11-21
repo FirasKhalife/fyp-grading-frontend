@@ -37,7 +37,7 @@ only origin the local Keycloak client accepts. Unit tests always use the mocks, 
 - TanStack Query over a repository built on the OpenAPI contract (`src/api`); live updates over
   Server-Sent Events.
 - Sign-in with Keycloak through `oidc-client-ts`: persona cards use the public demo accounts,
-  "Sign in with email" uses the authorization code flow with PKCE.
+  "Sign in with username" uses the authorization code flow with PKCE.
 
 ```
 src/

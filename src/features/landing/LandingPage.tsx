@@ -76,7 +76,7 @@ export function LandingPage() {
                 onClick={() => void signInWithEmail().catch(() => setError(true))}
                 className="inline-flex min-h-11 cursor-pointer items-center rounded-ctl border border-line bg-surface px-4 text-[15px] font-semibold text-ink hover:border-pri"
               >
-                Sign in with email
+                Sign in with username
               </button>
             )}
             <button

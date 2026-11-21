@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import * as store from '@/mocks/store'
 import { renderApp } from '@/test/render'
 
-// "Sign in with email" on a brand-new browser: Keycloak redirects back to /auth/callback, and this browser
+// "Sign in with username" on a brand-new browser: Keycloak redirects back to /auth/callback, and this browser
 // has no demo copy yet. /api/me answers 404 without one (as on the real gateway), so the copy has to be made
 // first. Found in integration testing: the callback asked /api/me first and the sign-in failed.
 vi.mock('@/auth/oidc', () => {
@@ -20,7 +20,7 @@ vi.mock('@/auth/oidc', () => {
   }
 })
 
-describe('Sign in with email on a new browser', () => {
+describe('Sign in with username on a new browser', () => {
   it('creates the copy before asking who the user is, then lands on their home', async () => {
     renderApp('/auth/callback')
     store.purgeCopy() // a browser that never had a copy
